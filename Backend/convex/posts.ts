@@ -7,8 +7,10 @@ export const create = mutation({
         slug: v.string(),
         content: v.string(),
         coverImageId: v.optional(v.id("_storage")),
+        images: v.optional(v.array(v.string())),
         excerpt: v.optional(v.string()),
         published: v.boolean(),
+        category: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -39,11 +41,32 @@ export const create = mutation({
             slug: args.slug,
             content: args.content,
             coverImageId: args.coverImageId,
+            images: args.images,
             authorId: user._id,
             published: args.published,
             excerpt: args.excerpt,
             views: 0,
+            category: args.category,
+            likes: 0,
+            comments: [],
         });
+    },
+});
+
+export const generateUploadUrl = mutation(async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+});
+
+export const checkTitle = query({
+    args: { title: v.string() },
+    handler: async (ctx, args) => {
+        // Simple check if any post has this title.
+        // For a more robust slug check, we might want to check slugs, but prompt asked for title check.
+        const post = await ctx.db
+            .query("posts")
+            .filter((q) => q.eq(q.field("title"), args.title))
+            .first();
+        return !!post;
     },
 });
 

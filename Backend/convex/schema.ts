@@ -17,7 +17,13 @@ export default defineSchema({
         authorId: v.id("users"),
         published: v.boolean(),
         excerpt: v.optional(v.string()),
+        images: v.optional(v.array(v.string())), // Array of storage IDs
         views: v.number(),
+        category: v.optional(v.string()),
+        likes: v.number(),
+        // We are keeping relational comments table, but adding this array as requested by prompt
+        // ideally this should be a count or list of IDs if used for checking participation
+        comments: v.optional(v.array(v.string())),
     })
         .index("by_slug", ["slug"])
         .index("by_author", ["authorId"]),
