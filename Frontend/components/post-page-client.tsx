@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useUser, SignInButton } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ViewCounter } from "@/components/view-counter";
 import { LikeButton } from "@/components/like-button";
@@ -12,10 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, MessageSquare, Clock, Sparkles } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { PostActions } from "@/components/post-actions";
 
 export default function PostPageClient({ slug }: { slug: string }) {
     const { user, isLoaded } = useUser();
     const post = useQuery(api.posts.getBySlug, { slug: slug });
+    const incrementView = useMutation(api.posts.incrementView);
+    const hasIncrementedView = useRef(false);
 
     // Always call hooks unconditionally - pass skip option or handle null
     const likesCount = useQuery(
@@ -27,19 +32,20 @@ export default function PostPageClient({ slug }: { slug: string }) {
         post ? { postId: post._id } : "skip"
     ) ?? 0;
 
-    if (isLoaded && !user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center space-y-4">
-                    <h2 className="text-2xl font-bold">Sign in to view this post</h2>
-                    <p className="text-muted-foreground">Join the community to read full articles.</p>
-                    <SignInButton mode="modal">
-                        <Button size="lg">Sign In</Button>
-                    </SignInButton>
-                </div>
-            </div>
-        );
-    }
+    // Increment view count when post is loaded (only once per session)
+    useEffect(() => {
+        if (post && !hasIncrementedView.current) {
+            incrementView({ postId: post._id })
+                .then(() => {
+                    hasIncrementedView.current = true;
+                })
+                .catch((error) => {
+                    console.error("Failed to increment view:", error);
+                });
+        }
+    }, [post, incrementView]);
+
+
 
     if (post === undefined) {
         return <div className="container mx-auto py-10">Loading...</div>;
@@ -57,6 +63,17 @@ export default function PostPageClient({ slug }: { slug: string }) {
         <article className="min-h-screen bg-background">
             {/* Hero Section with Cover Image */}
             <div className="relative w-full h-[400px] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+                {/* Cover Image */}
+                {post.coverImageUrl && (
+                    <Image
+                        src={post.coverImageUrl}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                        priority
+                    />
+                )}
+
                 {/* Cover Image Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-background" />
 
@@ -84,13 +101,8 @@ export default function PostPageClient({ slug }: { slug: string }) {
                         )}
                     </div>
 
-                    {/* Title */}
-                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 leading-tight">
-                        {post.title}
-                    </h1>
-
                     {/* Author Info and Meta */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
                             <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
                                 <AvatarImage src={post.author?.image} />
@@ -113,6 +125,7 @@ export default function PostPageClient({ slug }: { slug: string }) {
                         <div className="flex items-center gap-2">
                             <LikeButton postId={post._id} />
                             <SaveButton postId={post._id} />
+                            <PostActions postId={post._id} authorId={post.authorId} />
                             <Button variant="ghost" size="icon" className="shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="18" cy="5" r="3" />
@@ -126,27 +139,19 @@ export default function PostPageClient({ slug }: { slug: string }) {
                     </div>
 
                     {/* Views and Comments Count */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8 pb-8 border-b">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
                         <div className="flex items-center gap-1">
                             <Eye className="w-4 h-4" />
                             <span>{post.views} views</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <MessageSquare className="w-4 h-4" />
-                            <span>{commentsCount} comments</span>
-                        </div>
                     </div>
 
-                    {/* AI-Generated Summary */}
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6 mb-10">
-                        <h3 className="text-purple-700 dark:text-purple-400 font-semibold mb-3 flex items-center gap-2">
-                            <Sparkles className="w-5 h-5" />
-                            AI-Generated Summary
-                        </h3>
-                        <p className="text-sm text-foreground/80 leading-relaxed">
-                            {post.excerpt || "This article explores modern patterns for building scalable applications, focusing on architecture, best practices, and optimization techniques."}
-                        </p>
-                    </div>
+                    {/* Title */}
+                    <h1 className="text-3xl md:text-2xl font-bold tracking-tight mb-8 pb-8 border-b leading-tight">
+                        {post.title}
+                    </h1>
+
+
 
                     {/* Article Content */}
                     <div className="prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-p:leading-relaxed prose-p:text-foreground/90 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100">

@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,15 +35,20 @@ function FeaturedPostCard({ post }: { post: any }) {
     return (
         <Link href={`/posts/${post.slug}`}>
             <div className="group relative overflow-hidden rounded-xl bg-card border shadow-sm hover:shadow-md transition-all">
-                {/* Placeholder for Cover Image - Gradient Fallback */}
-                <div className="aspect-video w-full bg-gradient-to-br from-gray-900 to-gray-800 relative">
-                    {post.coverImageId && (
-                        // In real app, resolved URL
-                        <div className="absolute inset-0 bg-cover bg-center opacity-50 transition-opacity group-hover:opacity-60" />
-                        // For now just gradient
+                {/* Cover Image */}
+                <div className="aspect-video w-full bg-gradient-to-br from-gray-900 to-gray-800 relative overflow-hidden">
+                    {post.coverImageUrl ? (
+                        <Image
+                            src={post.coverImageUrl}
+                            alt={post.title}
+                            fill
+                            className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                        />
+                    ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900" />
                     )}
                     {post.category && (
-                        <div className="absolute top-4 left-4">
+                        <div className="absolute top-4 left-4 z-10">
                             <Badge variant="secondary" className="bg-blue-600 text-white hover:bg-blue-700">{post.category}</Badge>
                         </div>
                     )}

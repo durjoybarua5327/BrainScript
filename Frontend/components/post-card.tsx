@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Eye, MessageSquare, Heart, Bookmark, Users } from "lucide-react";
@@ -15,6 +16,7 @@ interface PostCardProps {
         slug: string;
         excerpt?: string;
         coverImageId?: Id<"_storage">;
+        coverImageUrl?: string | null;
         views: number;
         authorId: Id<"users">;
     };
@@ -34,8 +36,13 @@ export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commen
         <div className="group relative overflow-hidden rounded-xl bg-card border-2 border-border hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer">
             {/* Cover Image */}
             <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800">
-                {post.coverImageId ? (
-                    <div className="absolute inset-0 bg-cover bg-center opacity-90 group-hover:opacity-100 transition-opacity" />
+                {post.coverImageUrl ? (
+                    <Image
+                        src={post.coverImageUrl}
+                        alt={post.title}
+                        fill
+                        className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
+                    />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900" />
                 )}

@@ -13,6 +13,7 @@ interface PostCardWithDataProps {
         slug: string;
         excerpt?: string;
         coverImageId?: Id<"_storage">;
+        coverImageUrl?: string | null;
         views: number;
         authorId: Id<"users">;
     };

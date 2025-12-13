@@ -249,6 +249,23 @@ export const checkTitle = query({
     },
 });
 
+export const incrementView = mutation({
+    args: { postId: v.id("posts") },
+    handler: async (ctx, args) => {
+        const post = await ctx.db.get(args.postId);
+        if (!post) {
+            throw new Error("Post not found");
+        }
+
+        // Increment the view count
+        await ctx.db.patch(args.postId, {
+            views: post.views + 1,
+        });
+
+        return post.views + 1;
+    },
+});
+
 // Helper to get author for a post
 async function getAuthor(ctx: any, authorId: any) {
     return await ctx.db.get(authorId);
@@ -260,9 +277,65 @@ export const getRecent = query({
         const posts = await ctx.db.query("posts").order("desc").take(10);
         return Promise.all(posts.map(async (post) => {
             const author = await ctx.db.get(post.authorId);
-            return { ...post, author };
+            const coverImageUrl = post.coverImageId
+                ? await ctx.storage.getUrl(post.coverImageId)
+                : null;
+            return { ...post, author, coverImageUrl };
         }));
     }
+});
+
+export const getTrending = query({
+    args: {},
+    handler: async (ctx) => {
+        // Get posts from last 7 days
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const recentPosts = await ctx.db
+            .query("posts")
+            .filter((q) => q.gte(q.field("_creationTime"), oneWeekAgo))
+            .collect();
+
+        // Get engagement metrics for each post
+        const postsWithEngagement = await Promise.all(
+            recentPosts.map(async (post) => {
+                const author = await ctx.db.get(post.authorId);
+                const coverImageUrl = post.coverImageId
+                    ? await ctx.storage.getUrl(post.coverImageId)
+                    : null;
+
+                // Count likes
+                const likesCount = await ctx.db
+                    .query("likes")
+                    .withIndex("by_post", (q) => q.eq("postId", post._id))
+                    .collect()
+                    .then(likes => likes.length);
+
+                // Count comments
+                const commentsCount = await ctx.db
+                    .query("comments")
+                    .withIndex("by_post", (q) => q.eq("postId", post._id))
+                    .collect()
+                    .then(comments => comments.length);
+
+                // Calculate engagement score
+                const engagementScore = post.views + (likesCount * 2) + (commentsCount * 3);
+
+                return {
+                    ...post,
+                    author,
+                    coverImageUrl,
+                    likesCount,
+                    commentsCount,
+                    engagementScore,
+                };
+            })
+        );
+
+        // Sort by engagement score and return top posts
+        return postsWithEngagement
+            .sort((a, b) => b.engagementScore - a.engagementScore)
+            .slice(0, 10);
+    },
 });
 
 export const getBySlug = query({
@@ -277,7 +350,26 @@ export const getBySlug = query({
         }
         // Fetch author details
         const author = await ctx.db.get(post.authorId);
-        return post ? { ...post, author } : null;
+        const coverImageUrl = post.coverImageId
+            ? await ctx.storage.getUrl(post.coverImageId)
+            : null;
+        return post ? { ...post, author, coverImageUrl } : null;
+    },
+});
+
+export const getById = query({
+    args: { postId: v.id("posts") },
+    handler: async (ctx, args) => {
+        const post = await ctx.db.get(args.postId);
+        if (!post) {
+            return null;
+        }
+        // Fetch author details
+        const author = await ctx.db.get(post.authorId);
+        const coverImageUrl = post.coverImageId
+            ? await ctx.storage.getUrl(post.coverImageId)
+            : null;
+        return { ...post, author, coverImageUrl };
     },
 });
 
@@ -300,9 +392,15 @@ export const getMyPosts = query({
             .order("desc")
             .collect();
 
-        return posts;
+        return Promise.all(posts.map(async (post) => {
+            const coverImageUrl = post.coverImageId
+                ? await ctx.storage.getUrl(post.coverImageId)
+                : null;
+            return { ...post, coverImageUrl };
+        }));
     }
 });
+
 
 export const getMyStats = query({
     args: {},

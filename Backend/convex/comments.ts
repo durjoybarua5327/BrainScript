@@ -62,3 +62,58 @@ export const create = mutation({
         });
     }
 });
+
+export const update = mutation({
+    args: {
+        commentId: v.id("comments"),
+        content: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const comment = await ctx.db.get(args.commentId);
+        if (!comment) throw new Error("Comment not found");
+
+        if (comment.userId !== user._id) {
+            throw new Error("Unauthorized");
+        }
+
+        await ctx.db.patch(args.commentId, {
+            content: args.content,
+        });
+    }
+});
+
+export const deleteComment = mutation({
+    args: {
+        commentId: v.id("comments"),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Unauthenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const comment = await ctx.db.get(args.commentId);
+        if (!comment) throw new Error("Comment not found");
+
+        if (comment.userId !== user._id) {
+            throw new Error("Unauthorized");
+        }
+
+        await ctx.db.delete(args.commentId);
+    }
+});
