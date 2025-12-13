@@ -26,6 +26,19 @@ export const listByPost = query({
     },
 });
 
+
+export const getCount = query({
+    args: { postId: v.id("posts") },
+    handler: async (ctx, args) => {
+        const comments = await ctx.db
+            .query("comments")
+            .withIndex("by_post", (q) => q.eq("postId", args.postId))
+            .collect();
+        return comments.length;
+    }
+});
+
+
 export const create = mutation({
     args: {
         postId: v.id("posts"),

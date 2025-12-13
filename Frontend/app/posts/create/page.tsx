@@ -22,26 +22,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "convex/react";
 import { useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import Editor from "@/components/Editor";
 import ImageUpload from "@/components/ImageUpload";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Eye, Loader2 } from "lucide-react";
 
 // Categories (could be fetched from backend, but hardcoded for now or we can allow new ones)
-const CATEGORIES = [
-    "Technology",
-    "Lifestyle",
-    "Education",
-    "Health",
-    "Travel",
-    "Business",
-    "Entertainment",
-    "Science"
-];
+// Fetch distinct categories from backend; fallback to empty array if not loaded
+const fetchedCategories = useQuery(api.categories.list) || [];
+// Combine with any hardcoded defaults if desired (optional)
+const CATEGORIES = fetchedCategories;
 
 const formSchema = z.object({
     title: z.string().min(5, {
@@ -53,15 +49,19 @@ const formSchema = z.object({
     content: z.string().min(20, {
         message: "Content must be at least 20 characters.",
     }),
-    coverImageId: z.string().optional(),
+    coverImageId: z.string().min(1, { message: "Cover image is required." }),
 });
 
 export default function CreatePostPage() {
     const { toast } = useToast();
     const router = useRouter();
+    const { isSignedIn } = useUser();
+    // Ensure Convex API import for categories
+
     const createPost = useMutation(api.posts.create);
     const convex = useConvex();
     const [submitting, setSubmitting] = useState(false);
+    const [previewValues, setPreviewValues] = useState<z.infer<typeof formSchema> | null>(null);
     const [previewMode, setPreviewMode] = useState(false);
 
     // Asynchronous validation for title uniqueness
@@ -85,13 +85,8 @@ export default function CreatePostPage() {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(extendedSchema),
-        defaultValues: {
-            title: "",
-            content: "",
-            category: "",
-        },
-        mode: "onBlur", // Validate on blur to reduce async calls
     });
+    const { getValues } = form;
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         if (!values.coverImageId) {
@@ -102,25 +97,48 @@ export default function CreatePostPage() {
             });
             return;
         }
+        if (!values.category) {
+            toast({
+                title: "Category Required",
+                description: "Please select a category for your blog post.",
+                variant: "destructive",
+            });
+            return;
+        }
+        // Store values for preview and switch to preview mode
+        setPreviewValues(values);
+        setPreviewMode(true);
+    }
 
+    // Publish the post after user confirms in preview mode
+    async function handlePublish() {
+        if (!isSignedIn) {
+            toast({
+                title: "Not signed in",
+                description: "Please sign in to publish a post.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (!previewValues) return;
         setSubmitting(true);
         try {
+            const slug = previewValues.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
             await createPost({
-                title: values.title,
-                slug: values.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), // Simple slug generation
-                content: values.content,
-                category: values.category,
-                coverImageId: values.coverImageId as any, // ID naming convention
-                published: true, // Auto-publish for now
-                excerpt: values.content.replace(/<[^>]*>?/gm, '').slice(0, 150) + "...",
+                title: previewValues.title,
+                slug,
+                content: previewValues.content,
+                category: previewValues.category,
+                coverImageId: previewValues.coverImageId as any,
+                published: true,
+                excerpt: previewValues.content.replace(/<[^>]*>/gm, '').slice(0, 150) + "...",
             });
-
             toast({
                 title: "Post created",
                 description: "Your blog post has been successfully published!",
             });
-
-            router.push('/'); // Redirect to feed
+            router.push(`/posts/${slug}`);
         } catch (error) {
             console.error(error);
             toast({
@@ -130,6 +148,8 @@ export default function CreatePostPage() {
             });
         } finally {
             setSubmitting(false);
+            setPreviewMode(false);
+            setPreviewValues(null);
         }
     }
 
@@ -264,16 +284,28 @@ export default function CreatePostPage() {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setPreviewMode(true)}
-                                >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Preview
-                                </Button>
-                                <Button type="submit" disabled={submitting}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={form.handleSubmit(onSubmit)}
+                                    >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Preview
+                                    </Button>
+
+                                    {!isSignedIn && (
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm text-muted-foreground">Sign in to publish</p>
+                                            <SignInButton>
+                                                <Button>Sign in</Button>
+                                            </SignInButton>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button type="button" onClick={handlePublish} disabled={submitting || !isSignedIn}>
                                     {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Publish
                                 </Button>

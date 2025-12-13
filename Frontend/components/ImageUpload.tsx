@@ -14,7 +14,7 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({ onChange, value, className }: ImageUploadProps) {
-    const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const [preview, setPreview] = useState<string | null>(value || null);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);

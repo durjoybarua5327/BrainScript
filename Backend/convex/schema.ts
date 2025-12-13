@@ -24,6 +24,18 @@ export default defineSchema({
         // We are keeping relational comments table, but adding this array as requested by prompt
         // ideally this should be a count or list of IDs if used for checking participation
         comments: v.optional(v.array(v.string())),
+
+        // New fields
+        postType: v.optional(v.string()), // "article", "leetcode", "tutorial"
+        tags: v.optional(v.array(v.string())), // Array of tag strings
+
+        // LeetCode specific fields
+        problemNumber: v.optional(v.string()),
+        problemName: v.optional(v.string()),
+        difficulty: v.optional(v.string()), // "Easy", "Medium", "Hard"
+        leetcodeUrl: v.optional(v.string()),
+        timeComplexity: v.optional(v.string()), // e.g., "O(n)"
+        spaceComplexity: v.optional(v.string()), // e.g., "O(1)"
     })
         .index("by_slug", ["slug"])
         .index("by_author", ["authorId"]),

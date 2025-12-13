@@ -77,16 +77,6 @@ export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commen
                     </p>
                 )}
 
-                {/* Tags - Placeholder */}
-                <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="text-xs font-normal hover:bg-secondary/80">
-                        React
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs font-normal hover:bg-secondary/80">
-                        Web Dev
-                    </Badge>
-                </div>
-
                 {/* Stats */}
                 <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">

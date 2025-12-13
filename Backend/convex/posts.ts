@@ -11,20 +11,50 @@ export const create = mutation({
         excerpt: v.optional(v.string()),
         published: v.boolean(),
         category: v.optional(v.string()),
+
+        // New fields
+        postType: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
+
+        // LeetCode fields
+        problemNumber: v.optional(v.string()),
+        problemName: v.optional(v.string()),
+        difficulty: v.optional(v.string()),
+        leetcodeUrl: v.optional(v.string()),
+        timeComplexity: v.optional(v.string()),
+        spaceComplexity: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+        // Debug: log identity to help diagnose authentication issues in Convex logs
+        try {
+            // eslint-disable-next-line no-console
+            console.debug("Convex auth identity:", identity);
+        } catch (e) {
+            // ignore logging errors
+        }
         if (!identity) {
             throw new Error("Unauthenticated");
         }
 
-        const user = await ctx.db
+        let user = await ctx.db
             .query("users")
             .withIndex("by_email", (q) => q.eq("email", identity.email!))
             .unique();
 
+        // Auto-create user if they don't exist
         if (!user) {
-            throw new Error("User not found");
+            const userId = await ctx.db.insert("users", {
+                email: identity.email!,
+                name: identity.name || identity.email!.split("@")[0],
+                image: identity.pictureUrl,
+                role: "user",
+            });
+            user = await ctx.db.get(userId);
+        }
+
+        if (!user) {
+            throw new Error("Failed to create user");
         }
 
         const existingSlug = await ctx.db
@@ -49,7 +79,156 @@ export const create = mutation({
             category: args.category,
             likes: 0,
             comments: [],
+
+            // New fields
+            postType: args.postType,
+            tags: args.tags,
+
+            // LeetCode fields
+            problemNumber: args.problemNumber,
+            problemName: args.problemName,
+            difficulty: args.difficulty,
+            leetcodeUrl: args.leetcodeUrl,
+            timeComplexity: args.timeComplexity,
+            spaceComplexity: args.spaceComplexity,
         });
+    },
+});
+
+export const update = mutation({
+    args: {
+        postId: v.id("posts"),
+        title: v.optional(v.string()),
+        slug: v.optional(v.string()),
+        content: v.optional(v.string()),
+        coverImageId: v.optional(v.id("_storage")),
+        images: v.optional(v.array(v.string())),
+        excerpt: v.optional(v.string()),
+        published: v.optional(v.boolean()),
+        category: v.optional(v.string()),
+
+        // New fields
+        postType: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
+
+        // LeetCode fields
+        problemNumber: v.optional(v.string()),
+        problemName: v.optional(v.string()),
+        difficulty: v.optional(v.string()),
+        leetcodeUrl: v.optional(v.string()),
+        timeComplexity: v.optional(v.string()),
+        spaceComplexity: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Unauthenticated");
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .unique();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Get the post to verify ownership
+        const post = await ctx.db.get(args.postId);
+        if (!post) {
+            throw new Error("Post not found");
+        }
+
+        // Check if user is the author
+        if (post.authorId !== user._id) {
+            throw new Error("Unauthorized: You can only edit your own posts");
+        }
+
+        // If slug is being updated, check it doesn't already exist
+        if (args.slug && args.slug !== post.slug) {
+            const existingSlug = await ctx.db
+                .query("posts")
+                .withIndex("by_slug", (q) => q.eq("slug", args.slug!))
+                .unique();
+
+            if (existingSlug) {
+                throw new Error("Slug already exists");
+            }
+        }
+
+        // Update the post
+        const { postId, ...updateData } = args;
+        await ctx.db.patch(args.postId, updateData);
+
+        return args.postId;
+    },
+});
+
+export const deletePost = mutation({
+    args: {
+        postId: v.id("posts"),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Unauthenticated");
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .unique();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        // Get the post to verify ownership
+        const post = await ctx.db.get(args.postId);
+        if (!post) {
+            throw new Error("Post not found");
+        }
+
+        // Check if user is the author
+        if (post.authorId !== user._id) {
+            throw new Error("Unauthorized: You can only delete your own posts");
+        }
+
+        // Delete associated comments
+        const comments = await ctx.db
+            .query("comments")
+            .withIndex("by_post", (q) => q.eq("postId", args.postId))
+            .collect();
+
+        for (const comment of comments) {
+            await ctx.db.delete(comment._id);
+        }
+
+        // Delete associated likes
+        const likes = await ctx.db
+            .query("likes")
+            .withIndex("by_post", (q) => q.eq("postId", args.postId))
+            .collect();
+
+        for (const like of likes) {
+            await ctx.db.delete(like._id);
+        }
+
+        // Delete associated saves
+        const saves = await ctx.db
+            .query("saves")
+            .collect()
+            .then(saves => saves.filter(save => save.postId === args.postId));
+
+        for (const save of saves) {
+            await ctx.db.delete(save._id);
+        }
+
+        // Finally, delete the post
+        await ctx.db.delete(args.postId);
+
+        return { success: true };
     },
 });
 

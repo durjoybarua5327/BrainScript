@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { SignInButton, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Loader2, Upload } from "lucide-react";
 
@@ -22,11 +23,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/ImageUpload";
 
 // Schema for form validation
 const formSchema = z.object({
     title: z.string().min(5, {
         message: "Title must be at least 5 characters.",
+    }),
+    category: z.string().min(1, {
+        message: "Please select a category.",
+    }).refine((val) => val !== "", {
+        message: "Category is mandatory.",
     }),
     excerpt: z.string().optional(),
     content: z.string().min(50, {
@@ -35,16 +42,24 @@ const formSchema = z.object({
     slug: z.string().min(3, {
         message: "Slug must be at least 3 characters.",
     }),
+    coverImageId: z.string().min(1, {
+        message: "Cover image is mandatory. Please upload an image."
+    }).refine((val) => val !== "", {
+        message: "Cover image is required to publish.",
+    }),
 });
 
 export function CreatePostForm() {
     const router = useRouter();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [coverImage, setCoverImage] = useState<File | null>(null);
+    const { isSignedIn } = useUser();
+
+    // Fetch existing categories from backend for autocomplete suggestions
+    const existingCategories = useQuery(api.categories.list) || [];
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     // Mutations
-    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
     const createPost = useMutation(api.posts.create);
 
     // Form definition
@@ -52,70 +67,36 @@ export function CreatePostForm() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: "",
+            category: "",
             excerpt: "",
             content: "",
             slug: "",
+            coverImageId: "",
         },
     });
 
-    // Helper: Upload file to specific URL
-    const uploadFile = async (file: File) => {
-        const postUrl = await generateUploadUrl();
-        const result = await fetch(postUrl, {
-            method: "POST",
-            headers: { "Content-Type": file.type },
-            body: file,
-        });
-        const { storageId } = await result.json();
-        return storageId;
-    };
-
-    // Handler for rich text editor image uploads
-    const handleEditorImageUpload = async (file: File) => {
-        try {
-            const storageId = await uploadFile(file);
-            // Convex provides a way to get the URL, but for now we construct it locally or fetch it
-            // Ideally we should have a query to get URL, but for rich text we often need a public URL immediately
-            // For this implementation, we will use the Convex site URL pattern if available, or fetch a temporary one
-            // NOTE: In a real app, define a `getDownloadUrl` query. 
-            // For simplicity here, we assume we can construct it or need to fetch it.
-            // Let's use a standard Convex HTTP action approach or similar if strictly needed.
-            // Actually, `storageId` needs to be served. 
-            // Let's fallback: Create a simple query `files.getUrl` ideally.
-            // I'll assume we can use the storageId directly if the frontend knows the domain,
-            // but the cleanest way is asking the backend.
-
-            // Temporary fix: Return a placeholder or fetch signed URL.
-            // Since we didn't define `getDownloadUrl`, we will use the `storageId` 
-            // and let the image component resolving it (requiring a change in RichTextEditor to support storageId maybe?)
-            // OR: We define `api.files.geturl` now quickly.
-
-            // Let's assume there is a generic HTTP endpoint for storage, e.g., siteUrl + "/api/storage/" + storageId
-            const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL!.replace(".cloud", ".site");
-            return `${convexSiteUrl}/getImage?storageId=${storageId}`;
-        } catch (error) {
-            console.error("Upload failed", error);
-            throw error;
-        }
-    };
-
     // Submit handler
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!isSignedIn) {
+            toast({
+                title: "Not signed in",
+                description: "Please sign in to publish a post.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            let coverImageId = undefined;
-            if (coverImage) {
-                coverImageId = await uploadFile(coverImage);
-            }
-
             await createPost({
                 title: values.title,
                 slug: values.slug || values.title.toLowerCase().replace(/ /g, "-"),
                 content: values.content,
                 excerpt: values.excerpt,
-                coverImageId,
-                published: true, // Auto-publish for now
-                images: [], // We could track embedded images here if we parsed the content
+                coverImageId: values.coverImageId as any,
+                category: values.category,
+                published: true,
+                images: [],
             });
 
             toast({
@@ -170,6 +151,50 @@ export function CreatePostForm() {
 
                 <FormField
                     control={form.control}
+                    name="category"
+                    render={({ field }) => {
+                        const filteredSuggestions = existingCategories.filter(cat =>
+                            cat.toLowerCase().includes(field.value.toLowerCase()) &&
+                            cat.toLowerCase() !== field.value.toLowerCase()
+                        );
+
+                        return (
+                            <FormItem className="relative">
+                                <FormLabel>Category *</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Enter category (e.g., Technology, Health)"
+                                            {...field}
+                                            onFocus={() => setShowSuggestions(true)}
+                                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                        />
+                                        {showSuggestions && filteredSuggestions.length > 0 && (
+                                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-60 overflow-auto">
+                                                {filteredSuggestions.map((category) => (
+                                                    <div
+                                                        key={category}
+                                                        className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                                                        onClick={() => {
+                                                            field.onChange(category);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        {category}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        );
+                    }}
+                />
+
+                <FormField
+                    control={form.control}
                     name="excerpt"
                     render={({ field }) => (
                         <FormItem>
@@ -182,22 +207,22 @@ export function CreatePostForm() {
                     )}
                 />
 
-                <FormItem>
-                    <FormLabel>Cover Image</FormLabel>
-                    <FormControl>
-                        <div className="flex items-center gap-4">
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
-                                className="w-full"
-                            />
-                        </div>
-                    </FormControl>
-                    <FormDescription>
-                        Valid image file for the post header.
-                    </FormDescription>
-                </FormItem>
+                <FormField
+                    control={form.control}
+                    name="coverImageId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Cover Image *</FormLabel>
+                            <FormControl>
+                                <ImageUpload
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}
@@ -218,10 +243,21 @@ export function CreatePostForm() {
                     )}
                 />
 
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isSubmitting ? "Publishing..." : "Publish Post"}
-                </Button>
+                <div className="flex items-center gap-3">
+                    {!isSignedIn && (
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm text-muted-foreground">Sign in to publish</p>
+                            <SignInButton>
+                                <Button>Sign in</Button>
+                            </SignInButton>
+                        </div>
+                    )}
+
+                    <Button type="submit" disabled={isSubmitting || !isSignedIn}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? "Publishing..." : "Publish Post"}
+                    </Button>
+                </div>
             </form>
         </Form>
     );
