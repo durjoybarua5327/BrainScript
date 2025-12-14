@@ -15,10 +15,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, MessageSquare, Clock, Sparkles } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { PostActions } from "@/components/post-actions";
+import { useReadingTime } from "@/hooks/use-reading-time";
 
 export default function PostPageClient({ slug }: { slug: string }) {
     const { user, isLoaded } = useUser();
     const post = useQuery(api.posts.getBySlug, { slug: slug });
+
+    // Track reading time if post exists
+    useReadingTime({
+        postId: post?._id!,
+        enabled: !!post
+    });
+
     const incrementView = useMutation(api.posts.incrementView);
     const hasIncrementedView = useRef(false);
 
@@ -56,9 +64,6 @@ export default function PostPageClient({ slug }: { slug: string }) {
     }
 
     // Calculate reading time (rough estimate: 200 words per minute)
-    const wordCount = post.content.split(/\s+/).length;
-    const readingTime = Math.ceil(wordCount / 200);
-
     return (
         <article className="min-h-screen bg-background">
             {/* Hero Section with Cover Image */}
@@ -112,11 +117,6 @@ export default function PostPageClient({ slug }: { slug: string }) {
                                 <p className="font-semibold text-foreground">{post.author?.name || "Unknown Author"}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span>{new Date(post._creationTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        <span>{readingTime} min read</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>

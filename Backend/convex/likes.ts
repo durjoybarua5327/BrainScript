@@ -52,12 +52,21 @@ export const toggle = mutation({
             .withIndex("by_user_post", (q) => q.eq("userId", user._id).eq("postId", args.postId))
             .unique();
 
+        const post = await ctx.db.get(args.postId);
+        if (!post) throw new Error("Post not found");
+
         if (existing) {
             await ctx.db.delete(existing._id);
+            await ctx.db.patch(args.postId, {
+                likes: Math.max(0, (post.likes || 0) - 1)
+            });
         } else {
             await ctx.db.insert("likes", {
                 postId: args.postId,
                 userId: user._id,
+            });
+            await ctx.db.patch(args.postId, {
+                likes: (post.likes || 0) + 1
             });
         }
     }

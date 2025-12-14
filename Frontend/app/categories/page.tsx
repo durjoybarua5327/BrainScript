@@ -1,81 +1,352 @@
 "use client";
 
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye, MessageSquare, Heart, Calendar, ArrowRight, Layers, Hash, Clock, TrendingUp, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useSearchParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CategoriesPage() {
-    const allPosts = useQuery(api.posts.getRecent);
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const initialCategory = searchParams.get("category") || "All";
+    const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [sortBy, setSortBy] = useState("latest");
 
-    // Calculate category counts from posts
-    const categoryData = allPosts?.reduce((acc, post) => {
-        if (post.category) {
-            if (!acc[post.category]) {
-                acc[post.category] = 0;
-            }
-            acc[post.category]++;
+    const categoriesData = useQuery(api.posts.getCategories);
+    const tagsData = useQuery(api.posts.getTags);
+    const posts = useQuery(api.posts.getPosts, {
+        category: selectedCategory,
+        tags: selectedTags,
+        sortBy: sortBy
+    });
+
+    useEffect(() => {
+        const cat = searchParams.get("category");
+        if (cat) {
+            setSelectedCategory(cat);
+        } else {
+            setSelectedCategory("All");
         }
-        return acc;
-    }, {} as Record<string, number>) || {};
+    }, [searchParams]);
 
-    // Convert to array and sort by count
-    const categories = Object.entries(categoryData)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+    const handleCategoryClick = (category: string) => {
+        setSelectedCategory(category);
+        if (category === "All") {
+            router.push("/categories", { scroll: false });
+        } else {
+            router.push(`/categories?category=${encodeURIComponent(category)}`, { scroll: false });
+        }
+    };
 
-    // Color palette for categories
-    const colors = [
-        "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-        "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-        "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-        "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-        "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-        "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-        "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
-        "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+    const toggleTag = (tag: string) => {
+        setSelectedTags(prev =>
+            prev.includes(tag)
+                ? prev.filter(t => t !== tag)
+                : [...prev, tag]
+        );
+    };
+
+    // Construct sidebar categories including "All"
+    const allCategories = [
+        { name: "All", count: categoriesData?.reduce((acc, c) => acc + c.count, 0) || 0 },
+        ...(categoriesData || [])
+    ];
+
+    const sortOptions = [
+        { id: "latest", label: "Latest", icon: Clock },
+        { id: "popular", label: "Popular", icon: Star },
+        { id: "trending", label: "Trending", icon: TrendingUp },
     ];
 
     return (
-        <main className="min-h-screen bg-background pb-20">
-            <div className="container py-12">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2">Browse by Category</h1>
-                    <p className="text-muted-foreground">
-                        Explore articles organized by topics
-                    </p>
-                </div>
-
-                {categories.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {categories.map((category, index) => (
-                            <Link
-                                key={category.name}
-                                href={`/?category=${encodeURIComponent(category.name)}`}
-                            >
-                                <Card className="hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer h-full">
-                                    <CardContent className="p-8 text-center">
-                                        <Badge className={`${colors[index % colors.length]} text-lg px-4 py-2 mb-4`}>
-                                            {category.name}
-                                        </Badge>
-                                        <p className="text-muted-foreground">
-                                            {category.count} {category.count === 1 ? 'article' : 'articles'}
-                                        </p>
-                                    </CardContent>
-                                </Card>
-                            </Link>
-                        ))}
+        <main className="min-h-screen bg-background/50 pb-20">
+            {/* Header Section */}
+            <div className="bg-background border-b sticky top-16 z-30 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                <div className="container py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <Layers className="h-5 w-5" />
+                        </div>
+                        <h1 className="text-xl font-bold">Categories</h1>
                     </div>
-                ) : (
-                    <Card>
-                        <CardContent className="p-12 text-center">
-                            <p className="text-muted-foreground">
-                                No categories yet. Create your first post to get started!
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
+                    <div className="hidden md:block text-sm text-muted-foreground">
+                        Select a category and tags to explore related posts
+                    </div>
+                </div>
+            </div>
+
+            <div className="container py-8 flex flex-col lg:flex-row gap-8">
+                {/* Left Sidebar - Categories Navbar */}
+                <aside className="w-full lg:w-64 flex-shrink-0">
+                    <div className="sticky top-32 space-y-8">
+                        {/* Categories Group */}
+                        <div className="bg-card rounded-xl border shadow-sm p-4">
+                            <div className="font-semibold mb-4 px-2 flex items-center gap-2">
+                                <Hash className="h-4 w-4 text-primary" />
+                                Topics
+                            </div>
+                            <div className="space-y-1 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar">
+                                {categoriesData === undefined ? (
+                                    // Loading skeletons
+                                    Array(5).fill(0).map((_, i) => (
+                                        <div key={i} className="h-10 bg-muted/50 rounded-lg animate-pulse" />
+                                    ))
+                                ) : (
+                                    allCategories.map((cat) => (
+                                        <button
+                                            key={cat.name}
+                                            onClick={() => handleCategoryClick(cat.name)}
+                                            className={cn(
+                                                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                                                selectedCategory === cat.name
+                                                    ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                                                    : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                                            )}
+                                        >
+                                            <span className="truncate">{cat.name}</span>
+                                            <Badge
+                                                variant="secondary"
+                                                className={cn(
+                                                    "ml-2 text-xs",
+                                                    selectedCategory === cat.name
+                                                        ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                                                        : "bg-muted text-muted-foreground"
+                                                )}
+                                            >
+                                                {cat.count}
+                                            </Badge>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Tags Group */}
+                        <div className="bg-card rounded-xl border shadow-sm p-4">
+                            <div className="font-semibold mb-4 px-2 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Hash className="h-4 w-4 text-primary" />
+                                    Popular Tags
+                                </div>
+                                {selectedTags.length > 0 && (
+                                    <button
+                                        onClick={() => setSelectedTags([])}
+                                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 max-h-[35vh] overflow-y-auto pr-2 custom-scrollbar content-start">
+                                {tagsData === undefined ? (
+                                    // Loading skeletons
+                                    Array(5).fill(0).map((_, i) => (
+                                        <div key={i} className="h-6 w-12 bg-muted/50 rounded-full animate-pulse" />
+                                    ))
+                                ) : tagsData.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground px-2">No tags available</p>
+                                ) : (
+                                    tagsData.map((tag) => (
+                                        <Badge
+                                            key={tag.name}
+                                            variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                                            className={cn(
+                                                "cursor-pointer transition-all duration-200 hover:scale-105 shrink-0 mb-1",
+                                                selectedTags.includes(tag.name)
+                                                    ? "hover:bg-primary/90"
+                                                    : "hover:bg-secondary hover:text-secondary-foreground"
+                                            )}
+                                            onClick={() => toggleTag(tag.name)}
+                                        >
+                                            {tag.name}
+                                            {selectedTags.includes(tag.name) && (
+                                                <span className="ml-1 text-[10px] opacity-70">
+                                                    ×
+                                                </span>
+                                            )}
+                                        </Badge>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Main Content - Post List */}
+                <div className="flex-1 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            {selectedCategory === "All" ? "All Articles" : selectedCategory}
+                            <span className="text-base font-normal text-muted-foreground">
+                                ({posts?.length || 0})
+                            </span>
+                        </h2>
+
+                        <div className="flex items-center bg-card border rounded-lg p-1 shadow-sm">
+                            {sortOptions.map((option) => {
+                                const Icon = option.icon;
+                                return (
+                                    <button
+                                        key={option.id}
+                                        onClick={() => setSortBy(option.id)}
+                                        className={cn(
+                                            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+                                            sortBy === option.id
+                                                ? "bg-primary text-primary-foreground shadow-sm"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                        )}
+                                    >
+                                        <Icon className="h-3.5 w-3.5" />
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {posts === undefined ? (
+                            // Loading skeletons for posts
+                            Array(3).fill(0).map((_, i) => (
+                                <div key={i} className="h-64 rounded-xl bg-card border shadow-sm p-6 flex flex-col md:flex-row gap-6 animate-pulse">
+                                    <div className="w-full md:w-1/3 bg-muted rounded-lg" />
+                                    <div className="flex-1 space-y-4 py-2">
+                                        <div className="h-6 w-3/4 bg-muted rounded" />
+                                        <div className="h-4 w-1/2 bg-muted rounded" />
+                                        <div className="h-24 bg-muted rounded" />
+                                    </div>
+                                </div>
+                            ))
+                        ) : posts.length === 0 ? (
+                            <Card className="p-12 text-center flex flex-col items-center justify-center space-y-4 border-dashed">
+                                <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center">
+                                    <Layers className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-semibold">No posts found</h3>
+                                    <p className="text-muted-foreground max-w-sm">
+                                        There are no posts in this category yet. Be the first to write one!
+                                    </p>
+                                </div>
+                                <Button asChild>
+                                    <Link href="/dashboard/create">Write a Post</Link>
+                                </Button>
+                            </Card>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-6">
+                                <AnimatePresence mode="popLayout">
+                                    {posts.map((post) => (
+                                        <motion.div
+                                            key={post._id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <Link href={`/posts/${post.slug}`}>
+                                                <Card className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card">
+                                                    <div className="flex flex-col md:flex-row md:min-h-[240px]">
+                                                        {/* Image Section - 35% width on desktop */}
+                                                        <div className="relative w-full md:w-[320px] lg:w-[380px] h-56 md:h-auto shrink-0 overflow-hidden">
+                                                            {post.coverImageUrl ? (
+                                                                <Image
+                                                                    src={post.coverImageUrl}
+                                                                    alt={post.title}
+                                                                    fill
+                                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+                                                                    <Layers className="h-12 w-12 text-white/50" />
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                                                            {/* Category Badge overlay on mobile */}
+                                                            {post.category && (
+                                                                <div className="absolute top-4 left-4 md:hidden">
+                                                                    <Badge className="bg-background/90 text-foreground backdrop-blur-sm">
+                                                                        {post.category}
+                                                                    </Badge>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Content Section */}
+                                                        <div className="flex-1 p-6 md:p-8 flex flex-col justify-between min-w-0">
+                                                            <div className="space-y-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <Avatar className="h-8 w-8 ring-2 ring-background">
+                                                                            <AvatarImage src={post.author?.image} />
+                                                                            <AvatarFallback>{post.author?.name?.[0]}</AvatarFallback>
+                                                                        </Avatar>
+                                                                        <span className="text-sm font-medium text-foreground/80">
+                                                                            {post.author?.name}
+                                                                        </span>
+                                                                        <span className="text-muted-foreground text-xs">•</span>
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {new Date(post._creationTime).toLocaleDateString()}
+                                                                        </span>
+                                                                    </div>
+                                                                    {post.category && (
+                                                                        <Badge variant="secondary" className="hidden md:inline-flex opacity-80 group-hover:opacity-100 transition-opacity">
+                                                                            {post.category}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <h3 className="text-2xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                                                        {post.title}
+                                                                    </h3>
+                                                                    <p className="text-muted-foreground line-clamp-2 text-base leading-relaxed">
+                                                                        {post.excerpt || "No description available for this post. Click to read more."}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="pt-6 mt-2 flex items-center justify-between border-t border-border/50">
+                                                                <div className="flex items-center gap-6 text-muted-foreground text-sm">
+                                                                    <div className="flex items-center gap-2 transition-colors hover:text-foreground">
+                                                                        <Eye className="h-4 w-4" />
+                                                                        <span>{post.views}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 transition-colors hover:text-foreground">
+                                                                        <Heart className="h-4 w-4" />
+                                                                        <span>{post.likesCount || 0}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 transition-colors hover:text-foreground">
+                                                                        <MessageSquare className="h-4 w-4" />
+                                                                        <span>{post.commentsCount || 0}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center text-primary text-sm font-medium group/btn">
+                                                                    Read Article
+                                                                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            </Link>
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </main>
     );

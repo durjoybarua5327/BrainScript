@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, MessageSquare, Heart, Bookmark, Users } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useUser, SignInButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface PostCardProps {
     post: {
@@ -31,6 +32,13 @@ interface PostCardProps {
 
 export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commentsCount = 0 }: PostCardProps) {
     const { user } = useUser();
+    const router = useRouter();
+
+    const handleAuthorClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        router.push(`/profile/${post.authorId}`);
+    };
 
     const CardContent = (
         <div className="group relative overflow-hidden rounded-xl bg-card border-2 border-border hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-pointer">
@@ -59,13 +67,18 @@ export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commen
             {/* Content */}
             <div className="p-6 space-y-4">
                 {/* Author Info */}
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-background">
+                <div
+                    className="flex items-center gap-3 w-fit cursor-pointer group/author"
+                    onClick={handleAuthorClick}
+                >
+                    <Avatar className="h-10 w-10 border-2 border-background group-hover/author:border-blue-500 transition-colors">
                         <AvatarImage src={author?.image} />
                         <AvatarFallback className="text-sm">{author?.name?.[0] || "U"}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate">{author?.name || "Unknown Author"}</p>
+                        <p className="font-semibold text-sm truncate group-hover/author:text-blue-600 transition-colors">
+                            {author?.name || "Unknown Author"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                             {new Date(post._creationTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>

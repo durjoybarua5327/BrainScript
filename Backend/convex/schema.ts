@@ -36,9 +36,12 @@ export default defineSchema({
         leetcodeUrl: v.optional(v.string()),
         timeComplexity: v.optional(v.string()), // e.g., "O(n)"
         spaceComplexity: v.optional(v.string()), // e.g., "O(1)"
+        totalReadTimeMs: v.optional(v.number()), // Total time spent reading by all users
+        commentsCount: v.optional(v.number()), // Denormalized comments count
     })
         .index("by_slug", ["slug"])
-        .index("by_author", ["authorId"]),
+        .index("by_author", ["authorId"])
+        .index("by_category", ["category"]),
 
     comments: defineTable({
         postId: v.id("posts"),

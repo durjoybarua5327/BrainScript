@@ -55,10 +55,17 @@ export const create = mutation({
 
         if (!user) throw new Error("User not found");
 
+        const post = await ctx.db.get(args.postId);
+        if (!post) throw new Error("Post not found");
+
         await ctx.db.insert("comments", {
             postId: args.postId,
             userId: user._id,
             content: args.content,
+        });
+
+        await ctx.db.patch(args.postId, {
+            commentsCount: (post.commentsCount || 0) + 1,
         });
     }
 });
@@ -114,6 +121,14 @@ export const deleteComment = mutation({
             throw new Error("Unauthorized");
         }
 
+        const post = await ctx.db.get(comment.postId);
+
         await ctx.db.delete(args.commentId);
+
+        if (post) {
+            await ctx.db.patch(comment.postId, {
+                commentsCount: Math.max(0, (post.commentsCount || 0) - 1),
+            });
+        }
     }
 });

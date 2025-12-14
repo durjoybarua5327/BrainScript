@@ -64,3 +64,37 @@ export const upsertFromClerk = internalMutation({
         }
     },
 });
+export const getPublicProfile = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.userId);
+        if (!user) return null;
+
+        const posts = await ctx.db
+            .query("posts")
+            .withIndex("by_author", (q) => q.eq("authorId", args.userId))
+            .order("desc")
+            .collect();
+
+        const stats = {
+            totalPosts: posts.length,
+            totalViews: posts.reduce((acc, output) => acc + output.views, 0),
+            totalLikes: posts.reduce((acc, output) => acc + output.likes, 0),
+        };
+
+        return {
+            ...user,
+            stats,
+            // Return recent posts for the profile page
+            posts: await Promise.all(posts.map(async (post) => {
+                const coverImageUrl = post.coverImageId
+                    ? await ctx.storage.getUrl(post.coverImageId)
+                    : null;
+                return {
+                    ...post,
+                    coverImageUrl
+                };
+            }))
+        };
+    }
+});

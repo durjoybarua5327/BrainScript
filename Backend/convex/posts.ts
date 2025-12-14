@@ -285,6 +285,108 @@ export const getRecent = query({
     }
 });
 
+export const getPosts = query({
+    args: {
+        category: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
+        sortBy: v.optional(v.string())
+    },
+    handler: async (ctx, args) => {
+        let posts;
+        if (args.category && args.category !== "All") {
+            posts = await ctx.db
+                .query("posts")
+                .withIndex("by_category", (q) => q.eq("category", args.category!))
+                .collect();
+        } else {
+            posts = await ctx.db
+                .query("posts")
+                .collect();
+        }
+
+        // Filter by tags if provided
+        if (args.tags && args.tags.length > 0) {
+            posts = posts.filter(post => {
+                if (!post.tags) return false;
+                // Check if post has ALL selected tags
+                return args.tags!.every(tag => post.tags!.includes(tag));
+            });
+        }
+
+        // Sort posts
+        const sortBy = args.sortBy || "latest";
+        if (sortBy === "popular") {
+            posts.sort((a, b) => (b.views + b.likes) - (a.views + a.likes));
+        } else if (sortBy === "trending") {
+            const now = Date.now();
+            const getScore = (post: any) => {
+                const hoursSinceCreation = (now - post._creationTime) / (1000 * 60 * 60);
+                const engagement = post.views + (post.likes * 2);
+                // Gravity formula: score = engagement / (age + 2)^1.5
+                return engagement / Math.pow(hoursSinceCreation + 2, 1.5);
+            };
+            posts.sort((a, b) => getScore(b) - getScore(a));
+        } else {
+            // Default to latest
+            posts.sort((a, b) => b._creationTime - a._creationTime);
+        }
+
+        // Limit to 50
+        const paginatedPosts = posts.slice(0, 50);
+
+        return Promise.all(paginatedPosts.map(async (post) => {
+            const author = await ctx.db.get(post.authorId);
+            const coverImageUrl = post.coverImageId
+                ? await ctx.storage.getUrl(post.coverImageId)
+                : null;
+
+            return {
+                ...post,
+                author,
+                coverImageUrl,
+                likesCount: post.likes || 0,
+                commentsCount: post.commentsCount || 0
+            };
+        }));
+    }
+});
+
+export const getCategories = query({
+    args: {},
+    handler: async (ctx) => {
+        const posts = await ctx.db.query("posts").collect();
+        const categories = posts.reduce((acc, post) => {
+            if (post.category) {
+                acc[post.category] = (acc[post.category] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(categories)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+    }
+});
+
+export const getTags = query({
+    args: {},
+    handler: async (ctx) => {
+        const posts = await ctx.db.query("posts").collect();
+        const tags = posts.reduce((acc, post) => {
+            if (post.tags) {
+                post.tags.forEach(tag => {
+                    acc[tag] = (acc[tag] || 0) + 1;
+                });
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(tags)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+    }
+});
+
 export const getTrending = query({
     args: {},
     handler: async (ctx) => {
@@ -443,4 +545,23 @@ export const getMyStats = query({
             totalComments: commentsCount,
         };
     }
+});
+
+export const trackReadTime = mutation({
+    args: {
+        postId: v.id("posts"),
+        durationMs: v.number(),
+    },
+    handler: async (ctx, args) => {
+        // Cap duration to avoid outliers (e.g. left tab open overnight)
+        // Let's say max 5 minutes per ping
+        const safeDuration = Math.min(args.durationMs, 5 * 60 * 1000);
+
+        const post = await ctx.db.get(args.postId);
+        if (!post) return;
+
+        await ctx.db.patch(args.postId, {
+            totalReadTimeMs: (post.totalReadTimeMs || 0) + safeDuration,
+        });
+    },
 });

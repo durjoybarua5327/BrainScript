@@ -158,7 +158,7 @@ export default function CreatePostPage() {
                 title: "Success!",
                 description: "Your post has been created successfully",
             });
-            router.push("/dashboard");
+            router.push("/");
         } catch (error) {
             console.error("Failed to create post:", error);
             toast({
