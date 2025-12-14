@@ -179,7 +179,8 @@ export const getSuggestions = query({
 export const getTopWriters = query({
     args: {},
     handler: async (ctx) => {
-        const posts = await ctx.db.query("posts").collect();
+        // Optimization: Analyzes the last 100 posts to determine active top writers
+        const posts = await ctx.db.query("posts").order("desc").take(100);
         const authorStats: Record<string, { posts: number; views: number; comments: number }> = {};
 
         for (const post of posts) {
