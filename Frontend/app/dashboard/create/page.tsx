@@ -14,12 +14,17 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { RichTextEditor } from "@/components/rich-text-editor";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/rich-text-editor").then((mod) => mod.RichTextEditor), {
+    ssr: false,
+    loading: () => <div className="h-[600px] border rounded-md flex items-center justify-center bg-muted/10 text-muted-foreground">Loading Editor...</div>,
+});
 import ImageUpload from "@/components/ImageUpload";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SignInButton, useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +76,23 @@ export default function CreatePostPage() {
     const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState("");
     const [showPreview, setShowPreview] = useState(false);
+
+    // Check profile completeness
+    const convexUser = useQuery(api.users.getMe);
+    useEffect(() => {
+        if (convexUser !== undefined) {
+            const isProfileComplete = convexUser?.name && convexUser?.passion && convexUser?.interest && convexUser?.organization && convexUser?.image;
+
+            if (convexUser && !isProfileComplete) {
+                toast({
+                    title: "Profile Incomplete",
+                    description: "Please complete your profile details (Name, Passion, Interest, Organization) before creating a post.",
+                    variant: "destructive",
+                });
+                router.push("/profile");
+            }
+        }
+    }, [convexUser, router, toast]);
 
     // Mock data for demo
     const existingCategories = ["Technology", "Programming", "Design", "Tutorial"];
@@ -174,47 +196,7 @@ export default function CreatePostPage() {
     const tagSuggestions = ["JavaScript", "React", "TypeScript", "CSS", "Node.js", "Python", "Web Development", "Tutorial"];
 
     // Function to render markdown preview
-    const renderMarkdown = (text: string) => {
-        let html = text;
 
-        // Code blocks
-        html = html.replace(/```([\s\S]*?)```/g, '<pre class="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg overflow-x-auto my-4"><code>$1</code></pre>');
-
-        // Bold
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
-
-        // Italic
-        html = html.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-
-        // Headings
-        html = html.replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mt-6 mb-3">$1</h2>');
-
-        // Quotes
-        html = html.replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-blue-500 pl-4 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-blue-50 dark:bg-blue-950/20">$1</blockquote>');
-
-        // Ordered lists
-        html = html.replace(/^\d+\. (.*$)/gm, '<li class="ml-6 my-1">$1</li>');
-        html = html.replace(/(<li class="ml-6 my-1">.*<\/li>\n?)+/g, '<ol class="list-decimal my-4">    const tagSuggestions = ["JavaScript", "React", "TypeScript", "CSS", "Node.js", "Python", "Web Development", "Tutorial"];</ol>');
-
-        // Bullet lists
-        html = html.replace(/^- (.*$)/gm, '<li class="ml-6 my-1">$1</li>');
-        html = html.replace(/(<li class="ml-6 my-1">.*<\/li>\n?)+/g, (match) => {
-            if (!match.includes('list-decimal')) {
-                return '<ul class="list-disc my-4">' + match + '</ul>';
-            }
-            return match;
-        });
-
-        // Paragraphs
-        html = html.split('\n\n').map(para => {
-            if (!para.match(/^<(h2|pre|blockquote|ul|ol)/)) {
-                return '<p class="my-4 leading-relaxed">' + para + '</p>';
-            }
-            return para;
-        }).join('\n');
-
-        return html;
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -310,7 +292,7 @@ export default function CreatePostPage() {
 
                                 {/* Content Editor */}
                                 <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-                                    <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+                                    <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 sticky top-[85px] z-30">
                                         <div className="flex items-center justify-between">
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Code className="w-5 h-5 text-indigo-600" />
@@ -340,7 +322,7 @@ export default function CreatePostPage() {
                                             </div>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="pt-6 space-y-4">
+                                    <CardContent className="px-6 pb-6 pt-2 space-y-4">
                                         {/* Rich Text Formatting Toolbar */}
                                         <FormField
                                             control={form.control}
@@ -349,217 +331,17 @@ export default function CreatePostPage() {
                                                 <FormItem>
                                                     <FormControl>
                                                         <div className="space-y-4">
-                                                            {/* Formatting Toolbar */}
-                                                            <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950 border-2 border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                if (selectedText.startsWith('**') && selectedText.endsWith('**')) {
-                                                                                    field.onChange(beforeText + selectedText.slice(2, -2) + afterText);
-                                                                                } else {
-                                                                                    field.onChange(beforeText + '**' + selectedText + '**' + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <Bold className="w-4 h-4 mr-1" />
-                                                                        Bold
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                if (selectedText.startsWith('*') && selectedText.endsWith('*') && !selectedText.startsWith('**')) {
-                                                                                    field.onChange(beforeText + selectedText.slice(1, -1) + afterText);
-                                                                                } else {
-                                                                                    field.onChange(beforeText + '*' + selectedText + '*' + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <Italic className="w-4 h-4 mr-1" />
-                                                                        Italic
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                if (selectedText.startsWith('```') && selectedText.endsWith('```')) {
-                                                                                    field.onChange(beforeText + selectedText.slice(3, -3) + afterText);
-                                                                                } else {
-                                                                                    field.onChange(beforeText + '```\n' + selectedText + '\n```' + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <Code className="w-4 h-4 mr-1" />
-                                                                        Code
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                if (selectedText.startsWith('> ')) {
-                                                                                    field.onChange(beforeText + selectedText.replace(/^> /gm, '') + afterText);
-                                                                                } else {
-                                                                                    field.onChange(beforeText + '> ' + selectedText + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <Quote className="w-4 h-4 mr-1" />
-                                                                        Quote
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                field.onChange(beforeText + '\n## ' + afterText);
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <Heading2 className="w-4 h-4 mr-1" />
-                                                                        Heading
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                const lines = selectedText.split('\n');
-                                                                                if (lines[0]?.startsWith('- ')) {
-                                                                                    const unformatted = lines.map(line => line.replace(/^- /, '')).join('\n');
-                                                                                    field.onChange(beforeText + unformatted + afterText);
-                                                                                } else {
-                                                                                    const formatted = lines.map(line => line ? '- ' + line : '').join('\n');
-                                                                                    field.onChange(beforeText + formatted + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <List className="w-4 h-4 mr-1" />
-                                                                        Bullet List
-                                                                    </Button>
-
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            const textarea = document.querySelector('textarea');
-                                                                            if (textarea) {
-                                                                                const start = textarea.selectionStart;
-                                                                                const end = textarea.selectionEnd;
-                                                                                const selectedText = field.value.substring(start, end);
-                                                                                const beforeText = field.value.substring(0, start);
-                                                                                const afterText = field.value.substring(end);
-
-                                                                                const lines = selectedText.split('\n');
-                                                                                if (lines[0]?.match(/^\d+\. /)) {
-                                                                                    const unformatted = lines.map(line => line.replace(/^\d+\. /, '')).join('\n');
-                                                                                    field.onChange(beforeText + unformatted + afterText);
-                                                                                } else {
-                                                                                    const formatted = lines.map((line, i) => line ? `${i + 1}. ${line}` : '').join('\n');
-                                                                                    field.onChange(beforeText + formatted + afterText);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300"
-                                                                    >
-                                                                        <ListOrdered className="w-4 h-4 mr-1" />
-                                                                        Ordered List
-                                                                    </Button>
+                                                            {showPreview ? (
+                                                                <div className="h-[600px] overflow-y-auto p-6 border-2 rounded-lg bg-white dark:bg-slate-900 prose dark:prose-invert max-w-none prose-pre:bg-zinc-100 prose-pre:text-zinc-900 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-50 prose-pre:p-4 prose-pre:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:text-inherit">
+                                                                    <div dangerouslySetInnerHTML={{ __html: field.value }} />
                                                                 </div>
-                                                            </div>
-
-                                                            {/* Text Area */}
-                                                            <textarea
-                                                                value={field.value}
-                                                                onChange={(e) => {
-                                                                    field.onChange(e.target.value);
-                                                                    // Auto-resize textarea
-                                                                    e.target.style.height = 'auto';
-                                                                    e.target.style.height = e.target.scrollHeight + 'px';
-                                                                }}
-                                                                placeholder="Write your content here... Use the formatting buttons above to style your text.
-
-Start writing your blog post content...
-
-Use the toolbar buttons to:
-- Make text **bold** or *italic*
-- Add code blocks with ```
-- Create > quotes
-- Build bullet lists
-- Add numbered lists
-- Insert headings"
-                                                                className="w-full min-h-[600px] p-6 border-2 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 outline-none text-base leading-relaxed resize-none overflow-hidden bg-white dark:bg-slate-900"
-                                                                style={{ height: 'auto', minHeight: '600px' }}
-                                                            />
+                                                            ) : (
+                                                                <RichTextEditor
+                                                                    content={field.value}
+                                                                    onChange={field.onChange}
+                                                                    onImageUpload={handleImageUpload}
+                                                                />
+                                                            )}
                                                         </div>
                                                     </FormControl>
                                                     <FormMessage />

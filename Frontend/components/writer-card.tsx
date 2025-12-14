@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, Users } from "lucide-react";
+import { BookOpen, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
 interface WriterCardProps {
@@ -12,7 +12,8 @@ interface WriterCardProps {
         bio?: string;
         stats?: {
             posts: number;
-            followers: number;
+            comments?: number;
+            views?: number;
         };
     };
 }
@@ -50,8 +51,8 @@ export function WriterCard({ author }: WriterCardProps) {
                             <span>{author.stats?.posts || 0} posts</span>
                         </div>
                         <div className="flex items-center gap-2 group-hover:text-purple-600 transition-colors">
-                            <Users className="h-4 w-4" />
-                            <span>{author.stats?.followers || 0}</span>
+                            <MessageSquare className="h-4 w-4" />
+                            <span>{author.stats?.comments || 0} comments</span>
                         </div>
                     </div>
                 </div>

@@ -1,53 +1,17 @@
 "use client";
 
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { WriterCard } from "@/components/writer-card";
-
-const topWriters = [
-    {
-        _id: "1",
-        name: "Sarah Chen",
-        image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200",
-        bio: "Full-stack developer and tech writer. Passionate about React, Node.js, and cloud architecture.",
-        stats: { posts: 24, followers: 1542 }
-    },
-    {
-        _id: "2",
-        name: "Marcus Rodriguez",
-        image: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200",
-        bio: "AI/ML engineer exploring the intersection of technology and creativity.",
-        stats: { posts: 18, followers: 2103 }
-    },
-    {
-        _id: "3",
-        name: "Emily Watson",
-        image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200",
-        bio: "UX designer and frontend specialist. Crafting beautiful user experiences.",
-        stats: { posts: 31, followers: 3241 }
-    },
-    {
-        _id: "4",
-        name: "David Kim",
-        image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
-        bio: "Cloud architect and DevOps enthusiast. Sharing insights on scaling systems.",
-        stats: { posts: 42, followers: 1890 }
-    },
-    {
-        _id: "5",
-        name: "Lisa Patel",
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200",
-        bio: "Cybersecurity expert breaking down complex security concepts for everyone.",
-        stats: { posts: 15, followers: 1200 }
-    },
-    {
-        _id: "6",
-        name: "James Wilson",
-        image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200",
-        bio: "Data scientist turning raw data into compelling stories and insights.",
-        stats: { posts: 27, followers: 2450 }
-    }
-];
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function TopWritersPage() {
+    const { user } = useUser();
+    const topWriters = useQuery(api.users.getTopWriters);
+    const convexUser = useQuery(api.users.getMe);
+    const myId = convexUser?._id;
+
     return (
         <main className="min-h-screen bg-background pb-20">
             <div className="container py-12">
@@ -56,14 +20,34 @@ export default function TopWritersPage() {
                         Top Writers
                     </h1>
                     <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                        Discover the brilliant minds behind our most popular content. Follow them to stay updated with their latest insights.
+                        Discover the brilliant minds behind our most popular content.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-                    {topWriters.map((writer) => (
-                        <WriterCard key={writer._id} author={writer} />
-                    ))}
+                    {!topWriters ? (
+                        // Loading placeholders
+                        Array(6).fill(0).map((_, i) => (
+                            <div key={i} className="bg-muted/10 w-full max-w-sm h-[300px] rounded-[32px] animate-pulse border border-border/50" />
+                        ))
+                    ) : (
+                        topWriters.length > 0 ? (
+                            topWriters.map((writer) => {
+                                const isMe = myId === writer._id;
+                                const href = isMe ? "/profile" : `/profile/${writer._id}`;
+
+                                return (
+                                    <Link key={writer._id} href={href} className="block w-full max-w-sm hover:no-underline">
+                                        <WriterCard author={writer} />
+                                    </Link>
+                                );
+                            })
+                        ) : (
+                            <div className="col-span-full text-center text-muted-foreground">
+                                No writers found. Be the first!
+                            </div>
+                        )
+                    )}
                 </div>
             </div>
         </main>

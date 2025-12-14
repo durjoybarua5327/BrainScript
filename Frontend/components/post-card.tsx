@@ -8,6 +8,8 @@ import { Eye, MessageSquare, Heart, Bookmark, Users } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 interface PostCardProps {
     post: {
@@ -33,11 +35,16 @@ interface PostCardProps {
 export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commentsCount = 0 }: PostCardProps) {
     const { user } = useUser();
     const router = useRouter();
+    const me = useQuery(api.users.getMe);
 
     const handleAuthorClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        router.push(`/profile/${post.authorId}`);
+        if (me?._id === post.authorId) {
+            router.push("/profile");
+        } else {
+            router.push(`/profile/${post.authorId}`);
+        }
     };
 
     const CardContent = (

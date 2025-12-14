@@ -4,7 +4,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import { Toggle } from "@/components/ui/toggle";
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Code } from "lucide-react";
+import { useEffect } from "react";
 
 interface RichTextEditorProps {
     content: string;
@@ -16,7 +17,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ content, onChange, editable = true, onImageUpload }: RichTextEditorProps) {
     const editor = useEditor({
         extensions: [StarterKit, Image],
-        content,
+        content: content, // Initial content only if deps are set
         editable,
         immediatelyRender: false, // Fix for SSR hydration mismatch
         onUpdate: ({ editor }) => {
@@ -24,7 +25,7 @@ export function RichTextEditor({ content, onChange, editable = true, onImageUplo
         },
         editorProps: {
             attributes: {
-                class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[150px]",
+                class: "prose dark:prose-invert max-w-none focus:outline-none min-h-[150px] prose-pre:bg-zinc-100 prose-pre:text-zinc-900 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-50 prose-pre:p-4 prose-pre:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:text-inherit",
             },
             handleDrop: (view, event, slice, moved) => {
                 if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
@@ -45,16 +46,23 @@ export function RichTextEditor({ content, onChange, editable = true, onImageUplo
                 return false;
             }
         }
-    });
+    }, [editable]); // Dependency array ensures stability
+
+    // Sync content updates from parent if they differ from editor state
+    useEffect(() => {
+        if (editor && content !== editor.getHTML()) {
+            editor.commands.setContent(content);
+        }
+    }, [content, editor]);
 
     if (!editor) {
         return null;
     }
 
     return (
-        <div className="border rounded-md">
+        <div className="border rounded-md flex flex-col bg-white dark:bg-slate-950">
             {editable && (
-                <div className="border-b p-2 flex gap-2 flex-wrap bg-muted/20">
+                <div className="p-2 flex gap-2 flex-wrap bg-slate-50 dark:bg-slate-900 border-b sticky top-[158px] z-40 rounded-t-md">
                     <Toggle
                         size="sm"
                         pressed={editor.isActive("bold")}
@@ -68,6 +76,13 @@ export function RichTextEditor({ content, onChange, editable = true, onImageUplo
                         onPressedChange={() => editor.chain().focus().toggleItalic().run()}
                     >
                         <Italic className="h-4 w-4" />
+                    </Toggle>
+                    <Toggle
+                        size="sm"
+                        pressed={editor.isActive("codeBlock")}
+                        onPressedChange={() => editor.chain().focus().toggleCodeBlock().run()}
+                    >
+                        <Code className="h-4 w-4" />
                     </Toggle>
                     <Toggle
                         size="sm"
@@ -106,7 +121,7 @@ export function RichTextEditor({ content, onChange, editable = true, onImageUplo
                     </Toggle>
                 </div>
             )}
-            <div className="p-4">
+            <div className="p-4 overflow-y-auto h-[600px] rounded-b-md">
                 <EditorContent editor={editor} />
             </div>
         </div>

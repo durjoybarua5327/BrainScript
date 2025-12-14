@@ -19,6 +19,12 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import ImageUpload from "@/components/ImageUpload";
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/rich-text-editor").then((mod) => mod.RichTextEditor), {
+    ssr: false,
+    loading: () => <div className="h-[600px] border rounded-md flex items-center justify-center bg-muted/10 text-muted-foreground">Loading Editor...</div>,
+});
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +78,7 @@ export default function EditPostPage() {
     const [tags, setTags] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const existingCategories = ["Technology", "Programming", "Design", "Tutorial"];
 
@@ -175,7 +182,7 @@ export default function EditPostPage() {
     const tagSuggestions = ["JavaScript", "React", "TypeScript", "CSS", "Node.js", "Python", "Web Development", "Tutorial"];
 
     // Show loading state
-    if (!post) {
+    if (!post || !isLoaded) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -270,25 +277,56 @@ export default function EditPostPage() {
 
                                 {/* Content Editor */}
                                 <Card className="border-2 shadow-md hover:shadow-lg transition-shadow">
-                                    <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-                                        <CardTitle className="text-lg flex items-center gap-2">
-                                            <Code className="w-5 h-5 text-indigo-600" />
-                                            Content Editor
-                                        </CardTitle>
+                                    <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 sticky top-[85px] z-30">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-lg flex items-center gap-2">
+                                                <Code className="w-5 h-5 text-indigo-600" />
+                                                Content Editor
+                                            </CardTitle>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant={!showPreview ? "default" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => setShowPreview(false)}
+                                                    className={!showPreview ? "bg-blue-600 hover:bg-blue-700" : ""}
+                                                >
+                                                    <Code className="w-4 h-4 mr-1" />
+                                                    Write
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant={showPreview ? "default" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => setShowPreview(true)}
+                                                    className={showPreview ? "bg-blue-600 hover:bg-blue-700" : ""}
+                                                >
+                                                    <FileText className="w-4 h-4 mr-1" />
+                                                    Preview
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </CardHeader>
-                                    <CardContent className="pt-6 space-y-4">
+                                    <CardContent className="px-6 pb-2 pt-2 space-y-2">
                                         <FormField
                                             control={form.control}
                                             name="content"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormControl>
-                                                        <textarea
-                                                            value={field.value}
-                                                            onChange={(e) => field.onChange(e.target.value)}
-                                                            placeholder="Write your content here..."
-                                                            className="w-full min-h-[600px] p-6 border-2 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 outline-none text-base leading-relaxed resize-none overflow-hidden bg-white dark:bg-slate-900"
-                                                        />
+                                                        <div className="space-y-4">
+                                                            {showPreview ? (
+                                                                <div className="h-[600px] overflow-y-auto p-6 border-2 rounded-lg bg-white dark:bg-slate-900 prose dark:prose-invert max-w-none prose-pre:bg-zinc-100 prose-pre:text-zinc-900 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-50 prose-pre:p-4 prose-pre:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:text-inherit">
+                                                                    <div dangerouslySetInnerHTML={{ __html: field.value }} />
+                                                                </div>
+                                                            ) : (
+                                                                <RichTextEditor
+                                                                    content={field.value}
+                                                                    onChange={field.onChange}
+                                                                    onImageUpload={async (file) => URL.createObjectURL(file)}
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>

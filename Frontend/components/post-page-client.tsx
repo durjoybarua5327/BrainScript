@@ -20,6 +20,7 @@ import { useReadingTime } from "@/hooks/use-reading-time";
 export default function PostPageClient({ slug }: { slug: string }) {
     const { user, isLoaded } = useUser();
     const post = useQuery(api.posts.getBySlug, { slug: slug });
+    const me = useQuery(api.users.getMe);
 
     // Track reading time if post exists
     useReadingTime({
@@ -108,18 +109,21 @@ export default function PostPageClient({ slug }: { slug: string }) {
 
                     {/* Author Info and Meta */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
+                        <Link
+                            href={me?._id === post.authorId ? "/profile" : `/profile/${post.authorId}`}
+                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        >
                             <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
                                 <AvatarImage src={post.author?.image} />
                                 <AvatarFallback>{post.author?.name?.[0]}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <p className="font-semibold text-foreground">{post.author?.name || "Unknown Author"}</p>
+                                <p className="font-semibold text-foreground hover:underline decoration-blue-500/30 underline-offset-4 decoration-2">{post.author?.name || "Unknown Author"}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span>{new Date(post._creationTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
 
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2">
@@ -154,7 +158,7 @@ export default function PostPageClient({ slug }: { slug: string }) {
 
 
                     {/* Article Content */}
-                    <div className="prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-p:leading-relaxed prose-p:text-foreground/90 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100">
+                    <div className="prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-p:leading-relaxed prose-p:text-foreground/90 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-zinc-100 prose-pre:text-zinc-900 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-50 prose-pre:p-4 prose-pre:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:text-inherit">
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                     </div>
 

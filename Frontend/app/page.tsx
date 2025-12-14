@@ -272,11 +272,6 @@ function ArticleCard({ post }: { post: any }) {
   const likesCount = useQuery(api.likes.getCount, { postId: post._id }) ?? 0;
   const commentsCount = useQuery(api.comments.getCount, { postId: post._id }) ?? 0;
 
-  // Calculate reading time properly by stripping HTML
-  const contentText = post.content?.replace(/<[^>]+>/g, ' ') || '';
-  const wordCount = contentText.trim().split(/\s+/).length;
-  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
-
   // Get description from excerpt or content
   const description = post.excerpt ||
     (post.content ? post.content.replace(/<[^>]+>/g, '').slice(0, 150).trim() + (post.content.length > 150 ? "..." : "") : "");
@@ -355,10 +350,6 @@ function ArticleCard({ post }: { post: any }) {
 
             {/* Stats */}
             <div className="flex items-center gap-4 text-xs sm:text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{readingTime} min</span>
-              </span>
               <span className="flex items-center gap-1">
                 <Heart className="w-4 h-4" />
                 <span>{likesCount}</span>

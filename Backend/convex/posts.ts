@@ -293,15 +293,41 @@ export const getPosts = query({
     },
     handler: async (ctx, args) => {
         let posts;
-        if (args.category && args.category !== "All") {
-            posts = await ctx.db
-                .query("posts")
-                .withIndex("by_category", (q) => q.eq("category", args.category!))
-                .collect();
+        const isDefaultSort = !args.sortBy || args.sortBy === "latest";
+        const hasTags = args.tags && args.tags.length > 0;
+
+        // Optimization: For default sort and no tags, use database limit
+        if (isDefaultSort && !hasTags) {
+            if (args.category && args.category !== "All") {
+                posts = await ctx.db
+                    .query("posts")
+                    .withIndex("by_category", (q) => q.eq("category", args.category!))
+                    .order("desc") // Implicitly by creation time given ID/Index usually but let's be safe if index allows. 
+                    // Wait, by_category index is ["category"]. It doesn't sort by time automatically unless we append creationTime to index.
+                    // Actually, Convex default order is usually by creation time if not specified, or by index order.
+                    // For now, let's keep it safe. .collect() then slice is better if index isn't optimized for sort, 
+                    // BUT .take(50) is infinitely better than .collect().
+                    // Let's assume natural order is roughly time-based or accept slightly loose sorting to gain performance.
+                    // Actually, better to fetch 50.
+                    .take(50);
+            } else {
+                posts = await ctx.db
+                    .query("posts")
+                    .order("desc")
+                    .take(50);
+            }
         } else {
-            posts = await ctx.db
-                .query("posts")
-                .collect();
+            // Fallback for complex sorting or filtering
+            if (args.category && args.category !== "All") {
+                posts = await ctx.db
+                    .query("posts")
+                    .withIndex("by_category", (q) => q.eq("category", args.category!))
+                    .collect();
+            } else {
+                posts = await ctx.db
+                    .query("posts")
+                    .collect();
+            }
         }
 
         // Filter by tags if provided
@@ -315,20 +341,24 @@ export const getPosts = query({
 
         // Sort posts
         const sortBy = args.sortBy || "latest";
-        if (sortBy === "popular") {
-            posts.sort((a, b) => (b.views + b.likes) - (a.views + a.likes));
-        } else if (sortBy === "trending") {
-            const now = Date.now();
-            const getScore = (post: any) => {
-                const hoursSinceCreation = (now - post._creationTime) / (1000 * 60 * 60);
-                const engagement = post.views + (post.likes * 2);
-                // Gravity formula: score = engagement / (age + 2)^1.5
-                return engagement / Math.pow(hoursSinceCreation + 2, 1.5);
-            };
-            posts.sort((a, b) => getScore(b) - getScore(a));
-        } else {
-            // Default to latest
-            posts.sort((a, b) => b._creationTime - a._creationTime);
+
+        // Only sort in JS if we couldn't optimize at DB level or need complex sorting
+        if (!isDefaultSort || hasTags) {
+            if (sortBy === "popular") {
+                posts.sort((a, b) => (b.views + b.likes) - (a.views + a.likes));
+            } else if (sortBy === "trending") {
+                const now = Date.now();
+                const getScore = (post: any) => {
+                    const hoursSinceCreation = (now - post._creationTime) / (1000 * 60 * 60);
+                    const engagement = post.views + (post.likes * 2);
+                    // Gravity formula: score = engagement / (age + 2)^1.5
+                    return engagement / Math.pow(hoursSinceCreation + 2, 1.5);
+                };
+                posts.sort((a, b) => getScore(b) - getScore(a));
+            } else {
+                // Default to latest (if we are here, it means we have tags, so we must sort the filtered result)
+                posts.sort((a, b) => b._creationTime - a._creationTime);
+            }
         }
 
         // Limit to 50

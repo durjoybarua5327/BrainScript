@@ -7,6 +7,9 @@ export default defineSchema({
         email: v.optional(v.string()),
         image: v.optional(v.string()),
         role: v.optional(v.union(v.literal("user"), v.literal("admin"))),
+        passion: v.optional(v.string()), // e.g. Student, Businessman, Job
+        interest: v.optional(v.string()),
+        organization: v.optional(v.string()),
     }).index("by_email", ["email"]),
 
     posts: defineTable({

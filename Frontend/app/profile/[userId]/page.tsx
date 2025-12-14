@@ -1,17 +1,20 @@
 "use client";
 
+import { use } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Calendar, Mail, FileText, Users, Heart, Eye, ArrowLeft } from "lucide-react";
+import { Calendar, Mail, FileText, Users, Heart, Eye, ArrowLeft, MessageSquare, Building2, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { PostCard } from "@/components/post-card";
 import { useRouter } from "next/navigation";
 
-export default function ProfilePage({ params }: { params: { userId: string } }) {
+export default function ProfilePage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = use(params);
     const router = useRouter();
-    const profile = useQuery(api.users.getPublicProfile, { userId: params.userId as Id<"users"> });
+    const profile = useQuery(api.users.getPublicProfile, { userId: userId as Id<"users"> });
 
     if (profile === undefined) {
         return (
@@ -67,10 +70,22 @@ export default function ProfilePage({ params }: { params: { userId: string } }) 
                         {/* User Info */}
                         <div className="flex-1 space-y-2 text-center md:text-left">
                             <h1 className="text-3xl font-bold">{profile.name}</h1>
-                            <p className="text-muted-foreground max-w-2xl text-lg">
-                                {/* Mock Bio if not in schema yet, or user role/title */}
-                                {profile.role === "admin" ? "Administrator & Content Creator" : "Community Member & Writer"}
-                            </p>
+                            <div className="text-muted-foreground flex flex-col md:items-start items-center gap-1">
+                                <div className="text-lg font-medium flex items-center gap-2">
+                                    {profile.passion || "Community Member"}
+                                    {profile.role === "admin" && (
+                                        <Badge variant="secondary" className="gap-1 text-xs">
+                                            <Shield className="w-3 h-3" /> Admin
+                                        </Badge>
+                                    )}
+                                </div>
+                                {profile.organization && (
+                                    <div className="flex items-center gap-1.5 text-muted-foreground/80">
+                                        <Building2 className="w-4 h-4" />
+                                        <span>{profile.organization}</span>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mt-2">
                                 {profile.email && (
@@ -81,9 +96,20 @@ export default function ProfilePage({ params }: { params: { userId: string } }) 
                                 )}
                                 <div className="flex items-center gap-1.5">
                                     <Calendar className="w-4 h-4" />
-                                    <span>Joined {new Date(profile._creationTime).toLocaleDateString()}</span>
+                                    <span>Joined {new Date(profile._creationTime).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span>
                                 </div>
                             </div>
+
+                            {/* Skills Section */}
+                            {profile.interest && (
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-4">
+                                    {profile.interest.split(",").map(tag => (
+                                        <Badge key={tag} variant="secondary" className="bg-secondary/40 hover:bg-secondary/60">
+                                            {tag.trim()}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -98,11 +124,10 @@ export default function ProfilePage({ params }: { params: { userId: string } }) 
                         </div>
                         <div className="text-center px-2">
                             <div className="flex items-center justify-center gap-2 mb-1 text-purple-600">
-                                <Users className="w-5 h-5" />
-                                {/* Mock followers for now or 0 */}
-                                <span className="text-2xl font-bold">{0}</span>
+                                <MessageSquare className="w-5 h-5" />
+                                <span className="text-2xl font-bold">{profile.stats.totalComments}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Followers</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Comments</p>
                         </div>
                         <div className="text-center px-2">
                             <div className="flex items-center justify-center gap-2 mb-1 text-red-500">

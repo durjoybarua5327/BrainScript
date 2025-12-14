@@ -77,9 +77,13 @@ export const getSavedPosts = query({
                 const post = await ctx.db.get(save.postId);
                 if (!post) return null;
                 const author = await ctx.db.get(post.authorId);
+                const coverImageUrl = post.coverImageId
+                    ? await ctx.storage.getUrl(post.coverImageId)
+                    : null;
                 return {
                     ...post,
                     author,
+                    coverImageUrl,
                 };
             })
         ).then(posts => posts.filter(p => p !== null));
