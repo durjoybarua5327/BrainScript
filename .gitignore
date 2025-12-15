@@ -8,6 +8,7 @@ out/
 # Env files
 .env
 .env.local
+.env.example
 .env.*.local
 
 # Logs
