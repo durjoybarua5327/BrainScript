@@ -8,6 +8,8 @@ import { ThemeSync } from "@/components/theme-sync";
 import { MainNav } from "@/components/main-nav";
 import { Toaster } from "@/components/ui/toaster";
 
+import { AdminRedirect } from "@/components/admin-redirect";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -43,6 +45,7 @@ export default function RootLayout({
           >
             <ConvexClientProvider>
               <ThemeSync />
+              <AdminRedirect />
               <MainNav />
               {children}
               <Toaster />

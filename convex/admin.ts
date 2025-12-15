@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+// Trigger API regeneration
 import { mutation, query } from "./_generated/server";
 
 const SUPER_ADMIN_EMAIL = "durjoybarua8115@gmail.com";
@@ -101,5 +102,50 @@ export const deleteUser = mutation({
         // For now, we just delete the user record as requested.
 
         return `User ${targetUser.name} deleted successfully.`;
+    },
+});
+
+// 4. Get All Users (Admin Only)
+export const getAllUsers = query({
+    args: {},
+    handler: async (ctx) => {
+        await checkAdmin(ctx);
+
+        const users = await ctx.db.query("users").collect();
+
+        // Return users with relevant info, sorted by creation date
+        return users
+            .map((user) => ({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role || "user",
+                image: user.image,
+                _creationTime: user._creationTime,
+            }))
+            .sort((a, b) => b._creationTime - a._creationTime);
+    },
+});
+
+// 5. Get Admin Statistics (Admin Only)
+export const getAdminStats = query({
+    args: {},
+    handler: async (ctx) => {
+        await checkAdmin(ctx);
+
+        const users = await ctx.db.query("users").collect();
+        const posts = await ctx.db.query("posts").collect();
+
+        const totalUsers = users.length;
+        const adminUsers = users.filter((u) => u.role === "admin").length;
+        const regularUsers = totalUsers - adminUsers;
+        const totalPosts = posts.length;
+
+        return {
+            totalUsers,
+            adminUsers,
+            regularUsers,
+            totalPosts,
+        };
     },
 });

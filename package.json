@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
         "dev:frontend": "next dev ./Frontend",
-        "dev:backend": "convex dev --once-done exit --once-done-timeout 0",
+        "dev:backend": "convex dev",
         "build": "next build ./Frontend",
         "start": "next start ./Frontend",
         "lint": "next lint ./Frontend"
@@ -28,6 +28,7 @@
         "@clerk/nextjs": "^6.36.2",
         "@convex-dev/auth": "^0.0.90",
         "@hookform/resolvers": "^5.2.2",
+        "@radix-ui/react-alert-dialog": "^1.1.15",
         "@radix-ui/react-avatar": "^1.1.11",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
