@@ -16,7 +16,7 @@ export default function TopWritersPage() {
         <main className="min-h-screen bg-background pb-20">
             <div className="container py-12">
                 <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                    <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                         Top Writers
                     </h1>
                     <p className="text-muted-foreground text-lg max-w-2xl mx-auto">

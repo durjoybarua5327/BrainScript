@@ -1,61 +1,116 @@
 import { mutation, query } from "./_generated/server";
+// Force sync
 import { v } from "convex/values";
 
-// We'll store presence in a separate table "presence"
-// But defineTable in schema.ts is best.
-// For now, I'll update schema.ts to include presence table.
-// Wait, I can't edit schema.ts easily without potentially breaking existing data if strict.
-// But dev mode handles it.
-// I'll update schema.ts first in next step.
-// Actually, I can use "defineSchema" in `schema.ts`.
-// I will just write the schema update to `convex/schema.ts` first.
-// Oh wait, I am writing `presence.ts` here.
-// I'll write the heartbeat function assuming the table exists.
-
+// Update presence timestamp
 export const heartbeat = mutation({
     args: {
         postId: v.id("posts"),
-        user: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // Basic presence: simple "last seen" check
-        // We can insert/update a record.
-        // Ideally we use a `presence` table.
+        const identity = await ctx.auth.getUserIdentity();
+        let userRecord = null;
 
-        // For simplicity in this demo, let's just increment `views` on post for now?
-        // No, "Live Viewers" is ephemeral.
+        if (identity) {
+            userRecord = await ctx.db
+                .query("users")
+                .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                .unique();
+        }
 
-        // I need a schema update.
-        // I will return "Schema update needed" if I can't run it.
-        // But I will create the file assuming schema update comes next.
+        const existingQuery = ctx.db.query("presence").withIndex("by_post", (q) => q.eq("postId", args.postId));
 
-        const existing = await ctx.db
-            .query("presence")
-            .withIndex("by_post_user", (q) => q.eq("postId", args.postId).eq("user", args.user || "anon")) // Need user ID or session ID
-            .first();
+        // Manual filter for presence uniqueness
+        // Since we changed schema to allow optional userId, using unique() on by_post_user might be tricky with nulls in index if not careful, 
+        // but let's stick to logic: if userRecord exists, match userId. If not, match user="anon" (assuming simplified anon tracking for now per IP/session not available easily, or just "anon" aggregate).
+        // Actually, without a session ID for anon users, all anons will clash. 
+        // The error log showed `user: "anon"`. 
+        // Let's assume for this fix we might just update "anon" entry or create one? 
+        // The error implied `user: "anon"` was being inserted.
+
+        let existing;
+        if (userRecord) {
+            existing = await ctx.db
+                .query("presence")
+                .withIndex("by_post_user", (q) => q.eq("postId", args.postId).eq("userId", userRecord._id))
+                .unique();
+        } else {
+            // For anonymous users, we really need a session ID to track individuals.
+            // But based on the error "user: 'anon'", it seems the client might be sending something or the logic was attempting this.
+            // However, the client code `ActiveReaders` calls `heartbeat({ postId })` without args.
+            // If the user is not logged in, `identity` is null.
+            // If we just store one "anon" record per post, that's fine for "someone is reading", but bad for "5 people reading".
+            // Given the limitations and the error, I will stick to the plan: support adding "anon". 
+            // NOTE: Without a client-generated session ID, multiple anon users will just update the SAME "anon" record if we enforce uniqueness on (postId, 'anon').
+            // Let's first try to look for an existing "anon" record.
+            existing = await ctx.db
+                .query("presence")
+                .filter((q) => q.and(
+                    q.eq(q.field("postId"), args.postId),
+                    q.eq(q.field("user"), "anon")
+                ))
+                .first();
+        }
 
         if (existing) {
             await ctx.db.patch(existing._id, { updated: Date.now() });
         } else {
             await ctx.db.insert("presence", {
                 postId: args.postId,
-                user: args.user || "anon",
+                userId: userRecord ? userRecord._id : undefined,
+                user: userRecord ? undefined : "anon",
                 updated: Date.now(),
             });
         }
     },
 });
 
-export const getViewerCount = query({
+// Get active readers (excluding author)
+export const getPostReaders = query({
     args: { postId: v.id("posts") },
     handler: async (ctx, args) => {
-        // Count users active in last 60 seconds
         const now = Date.now();
-        const recent = await ctx.db
+        // Considered active if updated within last 30 seconds
+        const ACTIVE_THRESHOLD = 30 * 1000;
+
+        const post = await ctx.db.get(args.postId);
+        if (!post) return [];
+
+        // Fetch recent presence records
+        // Note: Convex doesn't support complex filtering in `query` efficiently without `withIndex` + `filter`.
+        // We use `by_post` and filter in memory since presence count per post is expected to be reasonable (or limit).
+        // For scalability, we should use an index on `updated` but mixing with `postId` equality is tricky without composite index.
+        // We added `by_post_updated` index.
+
+        const recentPresence = await ctx.db
             .query("presence")
-            .withIndex("by_post", (q) => q.eq("postId", args.postId))
-            .filter((q) => q.gt(q.field("updated"), now - 60000))
-            .collect();
-        return recent.length;
+            .withIndex("by_post_updated", (q) => q.eq("postId", args.postId).gt("updated", now - ACTIVE_THRESHOLD))
+            .order("desc")
+            .take(20); // Limit to top 20 most recent
+
+        // Filter out author and map to user details
+        const readers = await Promise.all(
+            recentPresence
+                .filter((p) => p.userId !== post.authorId)
+                .map(async (p) => {
+                    if (p.userId) {
+                        const user = await ctx.db.get(p.userId);
+                        return user ? {
+                            _id: user._id,
+                            name: user.name || "Anonymous",
+                            image: user.image,
+                        } : null;
+                    } else {
+                        // Anonymous user
+                        return {
+                            _id: p._id as unknown as string, // Cast ID for display key
+                            name: "Anonymous Reader",
+                            image: undefined,
+                        };
+                    }
+                })
+        );
+
+        return readers.filter((r) => r !== null);
     }
 });

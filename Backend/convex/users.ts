@@ -176,6 +176,34 @@ export const getSuggestions = query({
     },
 });
 
+
+export const updateTheme = mutation({
+    args: {
+        theme: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            throw new Error("Unauthorized");
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .unique();
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        await ctx.db.patch(user._id, {
+            theme: args.theme,
+        });
+
+        return args.theme;
+    },
+});
+
 export const getTopWriters = query({
     args: {},
     handler: async (ctx) => {

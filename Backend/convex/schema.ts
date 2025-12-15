@@ -10,6 +10,7 @@ export default defineSchema({
         passion: v.optional(v.string()), // e.g. Student, Businessman, Job
         interest: v.optional(v.string()),
         organization: v.optional(v.string()),
+        theme: v.optional(v.string()), // "light" or "dark" preference
     }).index("by_email", ["email"]),
 
     posts: defineTable({
@@ -61,11 +62,13 @@ export default defineSchema({
 
     presence: defineTable({
         postId: v.id("posts"),
-        user: v.string(), // userID or sessionID
+        userId: v.optional(v.id("users")),
+        user: v.optional(v.string()), // "anon" for anonymous users
         updated: v.number(),
     })
         .index("by_post", ["postId"])
-        .index("by_post_user", ["postId", "user"]),
+        .index("by_post_user", ["postId", "userId"])
+        .index("by_post_updated", ["postId", "updated"]), // Added for efficient filtering
 
     saves: defineTable({
         postId: v.id("posts"),
@@ -73,4 +76,13 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_user_post", ["userId", "postId"]),
+    notifications: defineTable({
+        recipientId: v.id("users"),
+        senderId: v.id("users"),
+        type: v.union(v.literal("like"), v.literal("comment")),
+        postId: v.id("posts"),
+        read: v.boolean(),
+    })
+        .index("by_recipient", ["recipientId"])
+        .index("by_recipient_read", ["recipientId", "read"]),
 });

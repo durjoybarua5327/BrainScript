@@ -70,20 +70,7 @@ export default function CategoriesPage() {
 
     return (
         <main className="min-h-screen bg-background/50 pb-20">
-            {/* Header Section */}
-            <div className="bg-background border-b sticky top-16 z-30 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
-                <div className="container py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            <Layers className="h-5 w-5" />
-                        </div>
-                        <h1 className="text-xl font-bold">Categories</h1>
-                    </div>
-                    <div className="hidden md:block text-sm text-muted-foreground">
-                        Select a category and tags to explore related posts
-                    </div>
-                </div>
-            </div>
+
 
             <div className="container py-8 flex flex-col lg:flex-row gap-8">
                 {/* Left Sidebar - Categories Navbar */}
@@ -109,7 +96,7 @@ export default function CategoriesPage() {
                                             className={cn(
                                                 "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                                                 selectedCategory === cat.name
-                                                    ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                                                    ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md scale-[1.02]"
                                                     : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
                                             )}
                                         >
@@ -119,7 +106,7 @@ export default function CategoriesPage() {
                                                 className={cn(
                                                     "ml-2 text-xs",
                                                     selectedCategory === cat.name
-                                                        ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                                                        ? "bg-white/20 text-white hover:bg-white/30"
                                                         : "bg-muted text-muted-foreground"
                                                 )}
                                             >
@@ -159,11 +146,11 @@ export default function CategoriesPage() {
                                     tagsData.map((tag) => (
                                         <Badge
                                             key={tag.name}
-                                            variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                                            variant={selectedTags.includes(tag.name) ? "secondary" : "outline"}
                                             className={cn(
                                                 "cursor-pointer transition-all duration-200 hover:scale-105 shrink-0 mb-1",
                                                 selectedTags.includes(tag.name)
-                                                    ? "hover:bg-primary/90"
+                                                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 border-0"
                                                     : "hover:bg-secondary hover:text-secondary-foreground"
                                             )}
                                             onClick={() => toggleTag(tag.name)}
@@ -185,29 +172,39 @@ export default function CategoriesPage() {
                 {/* Main Content - Post List */}
                 <div className="flex-1 space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                        <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
                             {selectedCategory === "All" ? "All Articles" : selectedCategory}
-                            <span className="text-base font-normal text-muted-foreground">
+                            <span className="text-sm md:text-base font-normal text-muted-foreground">
                                 ({posts?.length || 0})
                             </span>
                         </h2>
 
-                        <div className="flex items-center bg-card border rounded-lg p-1 shadow-sm">
+                        <div className="flex items-center bg-muted/30 border border-border/50 rounded-full p-1.5 shadow-inner">
                             {sortOptions.map((option) => {
                                 const Icon = option.icon;
+                                const isActive = sortBy === option.id;
                                 return (
                                     <button
                                         key={option.id}
                                         onClick={() => setSortBy(option.id)}
                                         className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
-                                            sortBy === option.id
-                                                ? "bg-primary text-primary-foreground shadow-sm"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            "relative flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                            isActive
+                                                ? "text-primary"
+                                                : "text-muted-foreground hover:text-foreground"
                                         )}
                                     >
-                                        <Icon className="h-3.5 w-3.5" />
-                                        {option.label}
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="active-sort-tab"
+                                                className="absolute inset-0 bg-background shadow-md rounded-full border border-border/20"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <span className="relative z-10 flex items-center gap-2">
+                                            <Icon className={cn("h-4 w-4", isActive && "text-blue-600")} />
+                                            {option.label}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -306,17 +303,17 @@ export default function CategoriesPage() {
                                                                 </div>
 
                                                                 <div className="space-y-2">
-                                                                    <h3 className="text-2xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                                                    <h3 className="text-xl md:text-2xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
                                                                         {post.title}
                                                                     </h3>
-                                                                    <p className="text-muted-foreground line-clamp-2 text-base leading-relaxed">
+                                                                    <p className="text-muted-foreground line-clamp-2 text-sm md:text-base leading-relaxed">
                                                                         {post.excerpt || "No description available for this post. Click to read more."}
                                                                     </p>
                                                                 </div>
                                                             </div>
 
                                                             <div className="pt-6 mt-2 flex items-center justify-between border-t border-border/50">
-                                                                <div className="flex items-center gap-6 text-muted-foreground text-sm">
+                                                                <div className="flex items-center gap-6 text-muted-foreground text-xs md:text-sm">
                                                                     <div className="flex items-center gap-2 transition-colors hover:text-foreground">
                                                                         <Eye className="h-4 w-4" />
                                                                         <span>{post.views}</span>
@@ -331,7 +328,7 @@ export default function CategoriesPage() {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="flex items-center text-primary text-sm font-medium group/btn">
+                                                                <div className="flex items-center text-primary text-xs md:text-sm font-medium group/btn">
                                                                     Read Article
                                                                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                                                                 </div>

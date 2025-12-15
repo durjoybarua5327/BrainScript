@@ -61,15 +61,15 @@ export default function Home() {
         {/* Main Content Area */}
         <div className="lg:col-span-9 space-y-8">
           {/* Create Post Section */}
-          <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
-            <CardContent className="flex items-center justify-between p-6">
+          <Card className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white border-0 overflow-hidden shadow-lg">
+            <CardContent className="flex items-center justify-between px-6 py-4">
               <div>
-                <h3 className="text-xl font-bold mb-1">Share your knowledge!</h3>
-                <p className="text-blue-100">Write an article and inspire the community.</p>
+                <h3 className="text-lg font-bold">Share your knowledge!</h3>
+                <p className="text-blue-50 text-sm">Write a Blog and inspire the community.</p>
               </div>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <Button variant="secondary" size="lg" className="shadow-lg hover:shadow-xl transition-all">
+                  <Button variant="secondary" className="shadow-md hover:shadow-lg transition-all border-none font-medium">
                     <PenTool className="mr-2 h-4 w-4" />
                     Create Blog
                   </Button>
@@ -77,7 +77,7 @@ export default function Home() {
               </SignedOut>
               <SignedIn>
                 <Link href="/dashboard/create">
-                  <Button variant="secondary" size="lg" className="shadow-lg hover:shadow-xl transition-all">
+                  <Button variant="secondary" className="shadow-md hover:shadow-lg transition-all border-none font-medium">
                     <PenTool className="mr-2 h-4 w-4" />
                     Create Blog
                   </Button>
@@ -88,7 +88,7 @@ export default function Home() {
 
           {/* Featured Posts */}
           <section>
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
               <span className="text-blue-600">📌</span> Featured Posts
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
@@ -104,7 +104,7 @@ export default function Home() {
               variant={selectedCategory === "All" ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory("All")}
-              className="rounded-full whitespace-nowrap"
+              className={`rounded-full whitespace-nowrap ${selectedCategory === "All" ? "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 border-0" : ""}`}
             >
               All
             </Button>
@@ -114,7 +114,7 @@ export default function Home() {
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
-                className="rounded-full whitespace-nowrap"
+                className={`rounded-full whitespace-nowrap ${selectedCategory === category ? "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 border-0" : ""}`}
               >
                 {category}
               </Button>
@@ -123,7 +123,7 @@ export default function Home() {
 
           {/* Latest Articles */}
           <section>
-            <h2 className="text-2xl font-bold mb-6">Latest Articles</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-6">Latest Articles</h2>
             <div className="space-y-10">
               {filteredPosts?.map((post) => (
                 <ArticleCard key={post._id} post={post} />
@@ -143,12 +143,12 @@ export default function Home() {
         </div>
 
         {/* Sidebar */}
-        <aside className="lg:col-span-3 space-y-6 hidden lg:block">
+        <aside className="lg:col-span-3 space-y-6">
           {/* Popular Posts */}
           <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-bold mb-4">Popular Posts</h3>
-              <div className="space-y-4">
+            <CardContent className="py-1 px-3">
+              <h3 className="text-lg font-bold mb-4 px-2 pt-0">Popular Posts</h3>
+              <div className="space-y-1">
                 {popularPosts.map((post, index) => (
                   <PopularPostItem key={post._id} post={post} index={index + 1} />
                 ))}
@@ -166,7 +166,7 @@ export default function Home() {
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-3 py-1"
+                      className="cursor-pointer bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 border-0 px-3 py-1"
                     >
                       #{tag}
                     </Badge>
@@ -186,7 +186,7 @@ export default function Home() {
 }
 
 function FeaturedPostCard({ post }: { post: any }) {
-  const likesCount = useQuery(api.likes.getCount, { postId: post._id }) ?? 0;
+  const likesCount = post.likes || 0;
 
   return (
     <Link href={`/posts/${post.slug}`}>
@@ -207,7 +207,7 @@ function FeaturedPostCard({ post }: { post: any }) {
         {/* Category Badge */}
         {post.category && (
           <div className="absolute top-4 left-4 z-20">
-            <Badge className="bg-blue-600 text-white hover:bg-blue-700">
+            <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 shadow-sm">
               {post.category}
             </Badge>
           </div>
@@ -215,7 +215,7 @@ function FeaturedPostCard({ post }: { post: any }) {
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-6 z-20 text-white">
-          <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-300 transition-colors">
+          <h3 className="text-lg md:text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-300 transition-colors">
             {post.title}
           </h3>
           <div className="flex items-center gap-4 text-sm text-white/80">
@@ -240,25 +240,25 @@ function FeaturedPostCard({ post }: { post: any }) {
 }
 
 function PopularPostItem({ post, index }: { post: any; index: number }) {
-  const likesCount = useQuery(api.likes.getCount, { postId: post._id }) ?? 0;
+  const likesCount = post.likes || 0;
 
   return (
     <Link href={`/posts/${post.slug}`}>
-      <div className="flex gap-3 group cursor-pointer">
-        <span className="text-2xl font-bold text-muted-foreground/20 leading-none">
+      <div className="flex gap-3 group cursor-pointer items-start py-0.5 px-2 rounded-xl hover:bg-muted/50 transition-colors">
+        <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-purple-600 opacity-50 leading-none mt-1 min-w-[1.5rem] text-center">
           {index}
         </span>
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-sm group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">
+          <h4 className="font-semibold text-sm group-hover:text-blue-600 transition-colors line-clamp-2 mb-2 leading-snug">
             {post.title}
           </h4>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Eye className="w-3 h-3" />
+              <Eye className="w-3 h-3 text-blue-500" />
               {post.views}
             </span>
             <span className="flex items-center gap-1">
-              <Heart className="w-3 h-3" />
+              <Heart className="w-3 h-3 text-red-500" />
               {likesCount}
             </span>
           </div>
@@ -269,8 +269,8 @@ function PopularPostItem({ post, index }: { post: any; index: number }) {
 }
 
 function ArticleCard({ post }: { post: any }) {
-  const likesCount = useQuery(api.likes.getCount, { postId: post._id }) ?? 0;
-  const commentsCount = useQuery(api.comments.getCount, { postId: post._id }) ?? 0;
+  const likesCount = post.likes || 0;
+  const commentsCount = post.commentsCount || 0;
 
   // Get description from excerpt or content
   const description = post.excerpt ||
@@ -299,7 +299,7 @@ function ArticleCard({ post }: { post: any }) {
             {/* Category and Date */}
             <div className="flex items-center gap-3 text-sm">
               {post.category && (
-                <span className="font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 rounded-full">
+                <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full border border-blue-100 dark:border-blue-800">
                   {post.category}
                 </span>
               )}
@@ -313,13 +313,13 @@ function ArticleCard({ post }: { post: any }) {
             </div>
 
             {/* Title */}
-            <h3 className="text-xl sm:text-2xl font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+            <h3 className="text-lg sm:text-xl md:text-2xl font-bold line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
               {post.title}
             </h3>
 
             {/* Excerpt/Description */}
             {description && (
-              <p className="text-muted-foreground line-clamp-2 leading-relaxed text-sm sm:text-base">
+              <p className="text-muted-foreground line-clamp-2 leading-relaxed text-xs sm:text-sm md:text-base">
                 {description}
               </p>
             )}

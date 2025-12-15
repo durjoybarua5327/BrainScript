@@ -93,32 +93,32 @@ export function PostCard({ post, author, liveViewers = 0, likesCount = 0, commen
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
+                <h3 className="text-lg md:text-xl font-bold line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
                     {post.title}
                 </h3>
 
                 {/* Excerpt */}
                 {post.excerpt && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                         {post.excerpt}
                     </p>
                 )}
 
                 {/* Stats */}
                 <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-xs md:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1 hover:text-foreground transition-colors">
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-green-500" />
                             <span>{post.views}</span>
                         </div>
                         <div className="flex items-center gap-1 hover:text-foreground transition-colors">
-                            <MessageSquare className="h-4 w-4" />
+                            <MessageSquare className="h-4 w-4 text-purple-500" />
                             <span>{commentsCount}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-red-600 transition-colors">
-                            <Heart className="h-4 w-4" />
+                        <button className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground hover:text-red-600 transition-colors">
+                            <Heart className="h-4 w-4 text-red-500" />
                             <span>{likesCount}</span>
                         </button>
                         <button className="text-muted-foreground hover:text-blue-600 transition-colors">

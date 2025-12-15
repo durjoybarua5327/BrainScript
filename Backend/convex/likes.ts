@@ -68,6 +68,16 @@ export const toggle = mutation({
             await ctx.db.patch(args.postId, {
                 likes: (post.likes || 0) + 1
             });
+
+            if (post.authorId !== user._id) {
+                await ctx.db.insert("notifications", {
+                    recipientId: post.authorId,
+                    senderId: user._id,
+                    type: "like",
+                    postId: args.postId,
+                    read: false,
+                });
+            }
         }
     }
 });

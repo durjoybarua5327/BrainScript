@@ -420,14 +420,15 @@ export const getTags = query({
 export const getTrending = query({
     args: {},
     handler: async (ctx) => {
-        // Get posts from last 7 days
+        // Get posts from last 7 days using the system index for speed
+        // Limit to 100 to avoid processing too many posts in memory
         const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
         const recentPosts = await ctx.db
             .query("posts")
-            .filter((q) => q.gte(q.field("_creationTime"), oneWeekAgo))
-            .collect();
+            .withIndex("by_creation_time", (q) => q.gt("_creationTime", oneWeekAgo))
+            .take(100);
 
-        // Get engagement metrics for each post
+        // Get engagement metrics for each post using denormalized fields
         const postsWithEngagement = await Promise.all(
             recentPosts.map(async (post) => {
                 const author = await ctx.db.get(post.authorId);
@@ -435,19 +436,9 @@ export const getTrending = query({
                     ? await ctx.storage.getUrl(post.coverImageId)
                     : null;
 
-                // Count likes
-                const likesCount = await ctx.db
-                    .query("likes")
-                    .withIndex("by_post", (q) => q.eq("postId", post._id))
-                    .collect()
-                    .then(likes => likes.length);
-
-                // Count comments
-                const commentsCount = await ctx.db
-                    .query("comments")
-                    .withIndex("by_post", (q) => q.eq("postId", post._id))
-                    .collect()
-                    .then(comments => comments.length);
+                // Use denormalized counts instead of database queries
+                const likesCount = post.likes || 0;
+                const commentsCount = post.commentsCount || 0;
 
                 // Calculate engagement score
                 const engagementScore = post.views + (likesCount * 2) + (commentsCount * 3);

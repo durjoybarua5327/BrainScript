@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
+import { ThemeSync } from "@/components/theme-sync";
 import { MainNav } from "@/components/main-nav";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ConvexClientProvider>
+              <ThemeSync />
               <MainNav />
               {children}
               <Toaster />

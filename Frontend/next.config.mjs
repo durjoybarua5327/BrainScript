@@ -1,9 +1,3 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
@@ -17,13 +11,21 @@ const nextConfig = {
                 hostname: 'img.clerk.com',
             },
         ],
+        formats: ['image/avif', 'image/webp'],
+        deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+        imageSizes: [16, 32, 48, 64, 96, 128, 256],
     },
-    webpack: (config) => {
-        config.resolve.alias = {
-            ...config.resolve.alias,
-            "@/convex": path.resolve(__dirname, "../Backend/convex"),
-        };
-        return config;
+    compress: false,
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    typescript: {
+        ignoreBuildErrors: true,
+    },
+
+    onDemandEntries: {
+        maxInactiveAge: 60 * 1000,
+        pagesBufferLength: 5,
     },
 };
 

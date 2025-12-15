@@ -37,7 +37,8 @@ export default function ProfilePage({ params }: { params: Promise<{ userId: stri
     }
 
     // Colors matching the gradient in the image
-    const gradientClass = "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600";
+    // Colors matching the gradient in the image
+    const gradientClass = "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500";
 
     return (
         <main className="min-h-screen bg-background">
@@ -60,16 +61,19 @@ export default function ProfilePage({ params }: { params: Promise<{ userId: stri
                 <div className="bg-card rounded-2xl shadow-xl border overflow-hidden">
                     <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-center">
                         {/* Avatar */}
-                        <Avatar className="h-32 w-32 border-4 border-background shadow-lg rounded-full shrink-0">
-                            <AvatarImage src={profile.image} className="object-cover" />
-                            <AvatarFallback className="text-4xl bg-primary/10 text-primary">
-                                {profile.name?.[0] || "U"}
-                            </AvatarFallback>
-                        </Avatar>
+                        <div className="relative group">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-75 blur transition duration-500"></div>
+                            <Avatar className="relative h-32 w-32 border-4 border-background shadow-lg rounded-full shrink-0">
+                                <AvatarImage src={profile.image} className="object-cover" />
+                                <AvatarFallback className="text-4xl bg-primary/10 text-primary">
+                                    {profile.name?.[0] || "U"}
+                                </AvatarFallback>
+                            </Avatar>
+                        </div>
 
                         {/* User Info */}
                         <div className="flex-1 space-y-2 text-center md:text-left">
-                            <h1 className="text-3xl font-bold">{profile.name}</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold">{profile.name}</h1>
                             <div className="text-muted-foreground flex flex-col md:items-start items-center gap-1">
                                 <div className="text-lg font-medium flex items-center gap-2">
                                     {profile.passion || "Community Member"}
@@ -89,13 +93,13 @@ export default function ProfilePage({ params }: { params: Promise<{ userId: stri
 
                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mt-2">
                                 {profile.email && (
-                                    <div className="flex items-center gap-1.5">
-                                        <Mail className="w-4 h-4" />
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 border border-border/50">
+                                        <Mail className="w-4 h-4 text-blue-500" />
                                         <span>{profile.email}</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-1.5">
-                                    <Calendar className="w-4 h-4" />
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 border border-border/50">
+                                    <Calendar className="w-4 h-4 text-green-500" />
                                     <span>Joined {new Date(profile._creationTime).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span>
                                 </div>
                             </div>
@@ -104,7 +108,7 @@ export default function ProfilePage({ params }: { params: Promise<{ userId: stri
                             {profile.interest && (
                                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-4">
                                     {profile.interest.split(",").map(tag => (
-                                        <Badge key={tag} variant="secondary" className="bg-secondary/40 hover:bg-secondary/60">
+                                        <Badge key={tag} variant="secondary" className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-primary border-0 hover:from-blue-100 hover:to-indigo-100 transition-colors">
                                             {tag.trim()}
                                         </Badge>
                                     ))}
@@ -115,40 +119,40 @@ export default function ProfilePage({ params }: { params: Promise<{ userId: stri
 
                     {/* Stats Row */}
                     <div className="border-t bg-muted/30 p-6 grid grid-cols-2 md:grid-cols-4 gap-4 divide-x divide-border/50">
-                        <div className="text-center px-2">
-                            <div className="flex items-center justify-center gap-2 mb-1 text-primary">
-                                <FileText className="w-5 h-5" />
-                                <span className="text-2xl font-bold">{profile.stats.totalPosts}</span>
+                        <div className="text-center px-2 group">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <FileText className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
+                                <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-500">{profile.stats.totalPosts}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Articles</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Articles</p>
                         </div>
-                        <div className="text-center px-2">
-                            <div className="flex items-center justify-center gap-2 mb-1 text-purple-600">
-                                <MessageSquare className="w-5 h-5" />
-                                <span className="text-2xl font-bold">{profile.stats.totalComments}</span>
+                        <div className="text-center px-2 group">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <MessageSquare className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform" />
+                                <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-500 to-pink-500">{profile.stats.totalComments}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Comments</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Comments</p>
                         </div>
-                        <div className="text-center px-2">
-                            <div className="flex items-center justify-center gap-2 mb-1 text-red-500">
-                                <Heart className="w-5 h-5" />
-                                <span className="text-2xl font-bold">{profile.stats.totalLikes}</span>
+                        <div className="text-center px-2 group">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <Heart className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
+                                <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-rose-500">{profile.stats.totalLikes}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Total Likes</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Likes</p>
                         </div>
-                        <div className="text-center px-2">
-                            <div className="flex items-center justify-center gap-2 mb-1 text-green-600">
-                                <Eye className="w-5 h-5" />
-                                <span className="text-2xl font-bold">{profile.stats.totalViews}</span>
+                        <div className="text-center px-2 group">
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <Eye className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" />
+                                <span className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-emerald-500">{profile.stats.totalViews}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Total Views</p>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Views</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Articles Section */}
                 <div className="mt-12 space-y-6">
-                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
                         Articles by {profile.name?.split(' ')[0]}
                     </h2>
 

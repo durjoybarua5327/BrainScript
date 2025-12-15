@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/ImageUpload";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
     const { user, isLoaded } = useUser();
@@ -39,6 +41,7 @@ export default function ProfilePage() {
     const [imageId, setImageId] = useState("");
     const [interestTags, setInterestTags] = useState<string[]>([]);
     const [interestInput, setInterestInput] = useState("");
+    const [activeTab, setActiveTab] = useState("posts");
 
     const suggestions = useQuery(api.users.getSuggestions);
     const roleSuggestions = suggestions?.passions || [];
@@ -133,7 +136,7 @@ export default function ProfilePage() {
     return (
         <main className="min-h-screen bg-background pb-20">
             {/* Hero Cover */}
-            <div className="h-48 md:h-64 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 relative">
+            <div className="h-48 md:h-64 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 relative">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent"></div>
             </div>
@@ -143,7 +146,8 @@ export default function ProfilePage() {
                 <div className="-mt-20 md:-mt-24 mb-8 flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
                     {/* Avatar */}
                     <div className="relative group">
-                        <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-2xl transition-transform transform group-hover:scale-105">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-500"></div>
+                        <Avatar className="relative h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-2xl transition-transform transform group-hover:scale-[1.02]">
                             <AvatarImage src={convexUser?.image || user.imageUrl} className="object-cover" />
                             <AvatarFallback className="text-4xl">{user.firstName?.[0] || user.username?.[0]}</AvatarFallback>
                         </Avatar>
@@ -151,30 +155,30 @@ export default function ProfilePage() {
 
                     {/* Info */}
                     <div className="flex-1 mb-2">
-                        <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{convexUser?.name || user.fullName || user.username}</h1>
-                        <p className="text-lg text-muted-foreground font-medium mt-1">{convexUser?.passion || "Tech Enthusiast"}</p>
+                        <h1 className="text-2xl md:text-5xl font-bold tracking-tight">{convexUser?.name || user.fullName || user.username}</h1>
+                        <p className="text-base md:text-lg text-muted-foreground font-medium mt-1">{convexUser?.passion || "Tech Enthusiast"}</p>
 
                         {/* Meta Row */}
                         <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4 text-sm text-muted-foreground">
                             {convexUser?.email && (
-                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors">
-                                    <Mail className="w-4 h-4" />
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors border border-border/50">
+                                    <Mail className="w-4 h-4 text-blue-500" />
                                     <span>{convexUser.email}</span>
                                 </div>
                             )}
                             {convexUser?.organization && (
-                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors">
-                                    <Building2 className="w-4 h-4" />
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors border border-border/50">
+                                    <Building2 className="w-4 h-4 text-purple-500" />
                                     <span>{convexUser.organization}</span>
                                 </div>
                             )}
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors">
-                                <User className="w-4 h-4" />
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors border border-border/50">
+                                <User className="w-4 h-4 text-green-500" />
                                 <span>Joined {new Date(user.createdAt || Date.now()).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</span>
                             </div>
                             {convexUser?.role && (
-                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors uppercase text-xs font-bold tracking-wider">
-                                    <Shield className="w-4 h-4" />
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 backdrop-blur-sm hover:bg-muted transition-colors uppercase text-xs font-bold tracking-wider border border-border/50">
+                                    <Shield className="w-4 h-4 text-orange-500" />
                                     <span>{convexUser.role}</span>
                                 </div>
                             )}
@@ -185,7 +189,7 @@ export default function ProfilePage() {
                     <div className="mb-4">
                         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button className="rounded-full shadow-lg gap-2" size="lg">
+                                <Button className="rounded-full shadow-lg gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 text-white" size="lg">
                                     <Pencil className="w-4 h-4" /> Edit Profile
                                 </Button>
                             </DialogTrigger>
@@ -334,7 +338,7 @@ export default function ProfilePage() {
                 {convexUser?.interest && (
                     <div className="mb-10 flex flex-wrap justify-center md:justify-start gap-2 max-w-3xl">
                         {convexUser.interest.split(",").map(tag => (
-                            <Badge key={tag} variant="secondary" className="px-4 py-1.5 text-sm rounded-full bg-secondary/50 backdrop-blur hover:bg-secondary">
+                            <Badge key={tag} variant="secondary" className="px-4 py-1.5 text-sm rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 transition-colors border-0">
                                 {tag.trim()}
                             </Badge>
                         ))}
@@ -343,50 +347,82 @@ export default function ProfilePage() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-colors">
+                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Total Posts</CardTitle>
-                            <FileText className="h-4 w-4 text-primary" />
+                            <FileText className="h-4 w-4 text-blue-500 mb-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{myStats?.totalPosts || 0}</div>
+                            <div className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-500">{myStats?.totalPosts || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-colors">
+                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Total Views</CardTitle>
-                            <Eye className="h-4 w-4 text-blue-500" />
+                            <Eye className="h-4 w-4 text-purple-500 mb-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{myStats?.totalViews || 0}</div>
+                            <div className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-500 to-pink-500">{myStats?.totalViews || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-colors">
+                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-red-500/10 hover:-translate-y-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Total Likes</CardTitle>
-                            <Heart className="h-4 w-4 text-red-500" />
+                            <Heart className="h-4 w-4 text-red-500 mb-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{myStats?.totalLikes || 0}</div>
+                            <div className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-rose-500">{myStats?.totalLikes || 0}</div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-colors">
+                    <Card className="bg-card/50 backdrop-blur-sm border-muted/50 hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-green-500/10 hover:-translate-y-1">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Comments</CardTitle>
-                            <MessageSquare className="h-4 w-4 text-green-500" />
+                            <MessageSquare className="h-4 w-4 text-green-500 mb-0" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{myStats?.totalComments || 0}</div>
+                            <div className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-green-500 to-emerald-500">{myStats?.totalComments || 0}</div>
                         </CardContent>
                     </Card>
                 </div>
 
                 {/* Content Tabs */}
-                <Tabs defaultValue="posts" className="w-full">
-                    <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 mb-8 bg-muted/50 p-1">
-                        <TabsTrigger value="posts" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">My Posts</TabsTrigger>
-                        <TabsTrigger value="saved" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Saved Posts</TabsTrigger>
-                    </TabsList>
+                {/* Content Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <div className="flex justify-center mb-8">
+                        <div className="flex items-center bg-muted/30 border border-border/50 rounded-full p-1.5 shadow-inner w-full max-w-md">
+                            {[
+                                { id: "posts", label: "My Posts", icon: FileText },
+                                { id: "saved", label: "Saved Posts", icon: Bookmark }
+                            ].map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={cn(
+                                            "relative flex-1 flex items-center justify-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                            isActive
+                                                ? "text-primary"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="active-profile-tab"
+                                                className="absolute inset-0 bg-background shadow-md rounded-full border border-border/20 z-0"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <span className="relative z-10 flex items-center gap-2">
+                                            <Icon className={cn("h-4 w-4", isActive && "text-blue-600")} />
+                                            {tab.label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     <TabsContent value="posts" className="mt-0">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -417,7 +453,7 @@ export default function ProfilePage() {
 
                                             {/* Content Section */}
                                             <div className="p-3 flex flex-col gap-2">
-                                                <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5rem]">
+                                                <h3 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5rem]">
                                                     {post.title}
                                                 </h3>
                                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-auto pt-2 border-t border-border/50">
@@ -468,7 +504,7 @@ export default function ProfilePage() {
 
                                             {/* Content Section */}
                                             <div className="p-3 flex flex-col gap-2">
-                                                <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5rem]">
+                                                <h3 className="font-semibold text-xs sm:text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors min-h-[2.5rem]">
                                                     {post.title}
                                                 </h3>
                                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-auto pt-2 border-t border-border/50">

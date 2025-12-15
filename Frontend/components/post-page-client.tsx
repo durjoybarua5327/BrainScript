@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, MessageSquare, Clock, Sparkles } from "lucide-react";
+import ActiveReaders from "@/components/active-readers";
 import { useEffect, useRef } from "react";
 import { PostActions } from "@/components/post-actions";
 import { useReadingTime } from "@/hooks/use-reading-time";
@@ -158,6 +159,7 @@ export default function PostPageClient({ slug }: { slug: string }) {
 
 
                     {/* Article Content */}
+                    <ActiveReaders postId={post._id} />
                     <div className="prose dark:prose-invert max-w-none prose-lg prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-p:leading-relaxed prose-p:text-foreground/90 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-zinc-100 prose-pre:text-zinc-900 dark:prose-pre:bg-zinc-900 dark:prose-pre:text-zinc-50 prose-pre:p-4 prose-pre:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:text-inherit">
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                     </div>
@@ -185,7 +187,7 @@ function RelatedPosts({ currentPostId, category }: { currentPostId: any; categor
     // Filter posts by same category and exclude current post
     const relatedPosts = allPosts
         ?.filter(post => post._id !== currentPostId && post.category === category)
-        .slice(0, 3) || [];
+        .slice(0, 5) || [];
 
     if (relatedPosts.length === 0) {
         return null;
@@ -193,18 +195,18 @@ function RelatedPosts({ currentPostId, category }: { currentPostId: any; categor
 
     return (
         <div className="mt-16 pt-10 border-t">
-            <h3 className="text-xl font-bold mb-6">Related Topics You Might Like</h3>
-            <div className="space-y-3">
+            <ul className="list-disc pl-5 space-y-2">
                 {relatedPosts.map((post) => (
-                    <Link
-                        key={post._id}
-                        href={`/posts/${post.slug}`}
-                        className="block text-blue-600 hover:underline"
-                    >
-                        {post.title}
-                    </Link>
+                    <li key={post._id}>
+                        <Link
+                            href={`/posts/${post.slug}`}
+                            className="text-blue-600 hover:underline"
+                        >
+                            {post.title}
+                        </Link>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </div>
     );
 }

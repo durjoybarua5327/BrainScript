@@ -8,11 +8,13 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as categories from "../categories.js";
 import type * as comments from "../comments.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as likes from "../likes.js";
+import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
 import type * as presence from "../presence.js";
 import type * as saves from "../saves.js";
@@ -27,11 +29,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   categories: typeof categories;
   comments: typeof comments;
   files: typeof files;
   http: typeof http;
   likes: typeof likes;
+  notifications: typeof notifications;
   posts: typeof posts;
   presence: typeof presence;
   saves: typeof saves;

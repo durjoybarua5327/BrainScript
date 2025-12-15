@@ -67,6 +67,16 @@ export const create = mutation({
         await ctx.db.patch(args.postId, {
             commentsCount: (post.commentsCount || 0) + 1,
         });
+
+        if (post.authorId !== user._id) {
+            await ctx.db.insert("notifications", {
+                recipientId: post.authorId,
+                senderId: user._id,
+                type: "comment",
+                postId: args.postId,
+                read: false,
+            });
+        }
     }
 });
 
