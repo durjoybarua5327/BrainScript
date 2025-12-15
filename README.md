@@ -2,14 +2,14 @@
 <div align="center">
     <h3>Project Demo</h3>
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
-    <img src="./Frontend/public/demos/pic1.png" alt="Demo 1" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic0.png" alt="Demo 0" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic2.png" alt="Demo 2" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic3.png" alt="Demo 3" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic4.png" alt="Demo 4" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic5.png" alt="Demo 5" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic6.png" alt="Demo 6" width="250" style="border-radius: 8px">
-    <img src="./Frontend/public/demos/pic7.png" alt="Demo 7" width="250" style="border-radius: 8px">
+    <img src="demos/pic1.png" alt="Demo 1" width="250" style="border-radius: 8px">
+    <img src="demos/pic0.png" alt="Demo 0" width="250" style="border-radius: 8px">
+    <img src="demos/pic2.png" alt="Demo 2" width="250" style="border-radius: 8px">
+    <img src="demos/pic3.png" alt="Demo 3" width="250" style="border-radius: 8px">
+    <img src="demos/pic4.png" alt="Demo 4" width="250" style="border-radius: 8px">
+    <img src="demos/pic5.png" alt="Demo 5" width="250" style="border-radius: 8px">
+    <img src="demos/pic6.png" alt="Demo 6" width="250" style="border-radius: 8px">
+    <img src="demos/pic7.png" alt="Demo 7" width="250" style="border-radius: 8px">
 </div>
 </div>
 
