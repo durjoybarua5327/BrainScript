@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "env": {
+    "CONVEX_DEPLOYMENT": "@CONVEX_DEPLOYMENT",
+    "NEXT_PUBLIC_CONVEX_URL": "@NEXT_PUBLIC_CONVEX_URL",
+    "CLERK_JWT_TEMPLATE_NAME": "@CLERK_JWT_TEMPLATE_NAME",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY": "@CLERK_SECRET_KEY"
+  },
+  "regions": ["iad1"],
+  "functions": {
+    "Frontend/pages/api/**": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}

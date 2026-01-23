@@ -8,7 +8,8 @@
         "dev:backend": "convex dev",
         "build": "next build ./Frontend",
         "start": "next start ./Frontend",
-        "lint": "next lint ./Frontend"
+        "lint": "next lint ./Frontend",
+        "vercel-build": "next build ./Frontend"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4",

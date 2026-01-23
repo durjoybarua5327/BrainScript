@@ -1,0 +1,13 @@
+# Vercel Ignore Rules
+node_modules
+.git
+.gitignore
+README.md
+LICENSE
+.env.local
+.env.example
+demos/
+Frontend/build_log.txt
+*.log
+.next/cache
+convex/.env.local
